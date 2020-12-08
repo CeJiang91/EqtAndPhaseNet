@@ -11,9 +11,9 @@ import time
 
 
 def run_predictor():
-    predictor(input_dir='../data/processed_data/xfj_processeddata/train_data',
-              input_model='../data/EqT_model.h5',
-              output_dir='../results/xfj_detections',
+    predictor(input_dir='./data/processed_data/xc_processeddata/train_data',
+              input_model='./data/EqT_model.h5',
+              output_dir='../results/data/xc/original_pick_data/xc_detections',
               estimate_uncertainty=False,
               output_probabilities=True,
               number_of_sampling=5,
