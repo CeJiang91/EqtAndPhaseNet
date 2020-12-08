@@ -8,17 +8,10 @@ last update: 10/08/2020
 PS:Included information: snr, dist, magnitude y EQTransformer
 
 """
-from obspy import UTCDateTime, read
 import numpy as np
-import glob
-import h5py
 import csv
 from os.path import join, basename
 import matplotlib.pyplot as plt
-import time
-import re
-from os import walk
-from EQTransformer.core.predictor import _get_snr
 
 
 detection_dir = '../xfj_detections/traces_outputs'

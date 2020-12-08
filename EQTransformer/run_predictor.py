@@ -9,10 +9,11 @@ Created on Sun Sep 13 12:48:05 2020
 from EQTransformer.core.predictor import predictor
 import time
 
+
 def run_predictor():
-    predictor(input_dir='../data/processed_data/train_data',
+    predictor(input_dir='../data/processed_data/xfj_processeddata/train_data',
               input_model='../data/EqT_model.h5',
-              output_dir='../sts_detectino',
+              output_dir='../results/xfj_detections',
               estimate_uncertainty=False,
               output_probabilities=True,
               number_of_sampling=5,

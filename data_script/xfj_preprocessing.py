@@ -13,23 +13,20 @@ import matplotlib.pyplot as plt
 
 
 def run_xfj_catalog():
-    # fullcatalog_reader(input_file=r'./XFJ/2010-2019catalog.txt'
-    #                    , output_dir=r'./__xfjcache__')
-    # phases2npy(input_dir=r'./XFJ/xfjml0_phase',
-    #            output_dir=r'./__xfjcache__')
-    catalog_head = np.load('./__xfjcache__/catalog_head.npy', allow_pickle=True).item()
-    catalog_ph_dist = np.load('./__xfjcache__/catalog_ph_dist.npy', allow_pickle=True).item()
-    catalog = {}
-    catalog['head'] = {}
-    catalog['phase'] = {}
-    catalog['dist'] = {}
+    fullcatalog_reader(input_file=r'../raw_data/XFJ/2010-2019catalog.txt'
+                       , output_dir=r'../raw_data/__xfjcache__')
+    phases2npy(input_dir=r'../raw_data/XFJ/xfjml0_phase',
+               output_dir=r'../raw_data/__xfjcache__')
+    catalog_head = np.load('../raw_data/__xfjcache__/catalog_head.npy', allow_pickle=True).item()
+    catalog_ph_dist = np.load('../raw_data/__xfjcache__/catalog_ph_dist.npy', allow_pickle=True).item()
+    catalog = {'head': {}, 'phase': {}, 'dist': {}}
     for ev in catalog_ph_dist['phase']:
         if ev in catalog_head:
             catalog['head'][ev] = catalog_head[ev]
             catalog['phase'][ev] = catalog_ph_dist['phase'][ev]
             catalog['dist'][ev] = catalog_ph_dist['dist'][ev]
             # breakpoint()
-    np.save('./XFJ/catalog.npy', catalog)
+    np.save('../raw_data/XFJ/catalog.npy', catalog)
 
 
 def run_xfj_seed2sac(input_dir, output_dir):
@@ -108,10 +105,9 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
 
 if __name__ == '__main__':
     start = time.process_time()
-    # run_xfj_catalog()
-    # run_xfj_seed2sac(input_dir='./XFJ/xfjml0_seed', output_dir='./XFJ/xfjml0_sac')
-    # run_xfj_seed2sac(input_dir='./test_seed_mini', output_dir='./test_sac_min')
-    # run_xfj_sac2phasenetdata(input_dir='./XFJ/xfjml0_sac', output_dir='./output', catalogfile='./XFJ/catalog.npy')
-    run_xfj_sac2phasenetdata(input_dir='./test_sac_min', output_dir='./output_test', catalogfile='./XFJ/catalog.npy')
+    run_xfj_catalog()
+    # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')
+    # run_xfj_sac2phasenetdata(input_dir='../raw_data/XFJ/xfjml0_sac', output_dir='../raw_data/phasenet_input',
+    #                          catalogfile='../raw_data/XFJ/catalog.npy')
     end = time.process_time()
     print(end - start)

@@ -190,15 +190,23 @@ def pharep2npy(input_dir, output_dir):
     phase = {}
     evn = 'None'
     mag = {}
+    dist = {}
+    head = {}
     for line in lines:
         if line[0] == '#':
             words = line.split()
             date = UTCDateTime(line[2:24])
             evn = date.strftime('%Y%m%d.%H%M%S.%f')[:-4] + '.SAC'
-
             if not phase.__contains__(evn):
                 phase[evn] = {}
                 mag[evn] = words[10]
+                dist[evn] = {}
+                head[evn] = {}
+                head[evn]['lat'] = float(words[7])
+                head[evn]['lon'] = float(words[8])
+                head[evn]['starttime'] = UTCDateTime(line[2:24])
+                head[evn]['ML'] = float(words[9])
+                head[evn]['depth'] = float(words[10])
         else:
             words = line.split()
             st = words[0]
@@ -206,61 +214,68 @@ def pharep2npy(input_dir, output_dir):
             arrival = UTCDateTime(words[4] + ' ' + words[5])
             if not phase[evn].__contains__(st):
                 phase[evn][st] = {}
+                dist[evn][st] = words[1]
             if phase[evn][st].__contains__(phase_type):
                 phase[evn][st][phase_type] = min(arrival, phase[evn][st][phase_type])
             else:
                 phase[evn][st][phase_type] = arrival
-    np.save(join(output_dir, 'seismic_phases'), phase)
-    np.save(join(output_dir, 'magnitude.npy'), mag)
+    catalog = {'head': head, 'phase': phase, 'dist': dist, 'mag': mag}
+    np.save(join(output_dir, 'catalog.npy'), catalog)
 
 
-def sac2h5py(input_dir, train_path, processed_dir):
-    net_phases = np.load(join(processed_dir, "seismic_phases.npy"), allow_pickle=True).item()
-    h5f = h5py.File(join(train_path, "traces.hdf5"), "w")
+def sac2h5py(input_dir, processed_dir):
+    catalog = np.load(join(processed_dir, "catalog.npy"), allow_pickle=True).item()
+    phase = catalog['phase']
+    h5f = h5py.File(join(processed_dir, 'train_data', "traces.hdf5"), "w")
     data = h5f.create_group('data')
     channel_num = 0
-    trs_data = np.zeros((3, 6000))
+    cutnpts = 6000
+    trs_data = np.zeros((3, cutnpts))
     trn = 0
     trs_name = []
     sts = []
     for root, dirs, files in walk(input_dir):
-        for f in files:
+        dirs.sort()
+        for f in sorted(files):
             tr = read(join(root, f))[0]
-            if tr.stats.npts < 6000:
+            if tr.stats.npts < cutnpts:
                 continue
             evn = root.split('/')[-1]
-            if net_phases.__contains__(evn):
+            if phase.__contains__(evn):
                 trn += 1
                 now_st = tr.stats.station
                 now_net = tr.stats.network
                 start_time = tr.stats.starttime
                 start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')
                 tn = now_st + '.' + now_net + '_' + evn + '_EV'
-                tr = tr.slice(start_time, start_time + 60 - 0.01)
+                tr = tr.slice(start_time, start_time + cutnpts / 100 - 0.01)
                 tr.detrend()
                 # tr.filter("bandpass", freqmin=1.0, freqmax=45)
                 tr.normalize()
-                td = tr.data.reshape(1, 6000)
+                td = tr.data.reshape(1, cutnpts)
                 if channel_num == 0:
-                    trs_data = np.zeros((3, 6000))
+                    trs_data = np.zeros((3, cutnpts))
                 trs_data[channel_num, :] = td
                 channel_num += 1
                 if channel_num == 3:
                     channel_num = 0
                     i = (trn - 1) // 3
-                    dsF = data.create_dataset(tn, data=trs_data.transpose(), dtype=np.dtype('<f4'))
+                    try:
+                        dsF = data.create_dataset(tn, data=trs_data.transpose(), dtype=np.dtype('<f4'))
+                    except [Exception]:
+                        breakpoint()
                     trs_name.append(tn)
                     sts.append(start_time_str)
                     dsF.attrs["trace_name"] = trs_name[i]
                     dsF.attrs["receiver_code"] = trs_name[i].split('.')[0]
                     dsF.attrs["network_code"] = trs_name[i].split('.')[1].split('_')[0]
-                    dsF.attrs["receiver_latitude"] = '-999'
-                    dsF.attrs["receiver_longitude"] = '-999'
-                    dsF.attrs["receiver_elevation_m"] = '-999'
+                    dsF.attrs["receiver_latitude"] = tr.stats.sac['stla'] if 'stla' in tr.stats.sac else -999
+                    dsF.attrs["receiver_longitude"] = tr.stats.sac['stlo'] if 'stlo' in tr.stats.sac else -999
+                    dsF.attrs["receiver_elevation_m"] = tr.stats.sac['stel'] if 'stel' in tr.stats.sac else -999
                     dsF.attrs['trace_start_time'] = sts[i]
     h5f.close()
     # output to csv_file
-    csv_file = open(join(train_path, "traces.csv"), 'w', newline='')
+    csv_file = open(join(processed_dir, 'train_data', "traces.csv"), 'w', newline='')
     output_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     output_writer.writerow(['trace_name'])
     for i in range(trn // 3):
@@ -354,5 +369,4 @@ def station_loc(input_dir, output_dir):
             lat.append(stla)
             lon.append(stlo)
             sts.append(st)
-            the_file.write(st+'%8.2f'%stla+'%8.2f'%stlo+'\n')
-
+            the_file.write(st + '%8.2f' % stla + '%8.2f' % stlo + '\n')

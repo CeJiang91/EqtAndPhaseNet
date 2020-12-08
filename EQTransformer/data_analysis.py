@@ -5,14 +5,10 @@
 from obspy import UTCDateTime, read
 import numpy as np
 import os
-import glob
-import time
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
-import h5py
 import csv
 from os.path import join
-import time
 
 
 def seed2errhist(detection_dir, processed_dir, output_dir):
