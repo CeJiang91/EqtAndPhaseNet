@@ -11,11 +11,11 @@ import time
 
 
 def run_predictor():
-    predictor(input_dir='./data/processed_data/xc_processeddata/train_data',
+    predictor(input_dir='../processed_data/XFJ1121/tenyears_set',
               input_model='./data/EqT_model.h5',
-              output_dir='../results/data/xc/original_pick_data/xc_detections',
+              output_dir='../results/data/XFJ1121V2/',
               estimate_uncertainty=False,
-              output_probabilities=True,
+              output_probabilities=False,
               number_of_sampling=5,
               loss_weights=[0.02, 0.40, 0.58],
               detection_threshold=0.1,

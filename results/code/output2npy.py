@@ -7,7 +7,6 @@ from obspy import UTCDateTime
 
 
 def eqtcsv2npy(csv_file, npy_file):
-    # catalog = np.load('../../raw_data/XFJ/catalog.npy', allow_pickle=True).item()
     f = open(csv_file, 'r')
     csv_file = csv.reader(f)
     csv_file.__next__()
@@ -15,7 +14,7 @@ def eqtcsv2npy(csv_file, npy_file):
     for line in csv_file:
         net = line[1].strip()
         st = line[2].strip()
-        evn = line[1] + '.' + line[0].split('_')[1]
+        evn = net+'.'+line[0].split('_')[1]
         p_arrival = line[11]
         p_prob = line[12]
         p_snr = line[14]
@@ -106,8 +105,52 @@ def phnetcsv2npy(csv_file, npy_file):
     np.save(npy_file, phnet)
 
 
+def okeqpha2npy(input_file, catalogfile, npy_file):
+    fp = open(input_file)
+    catalog = np.load(catalogfile, allow_pickle=True).item()
+    lines = fp.readlines()
+    phase = {}
+    evn = 'None'
+    mag = {}
+    dist = {}
+    for line in lines:
+        if line[0] == '#':
+            words = line.split()
+            date = UTCDateTime(line[2:25]) + 0.001 - 8 * 3600
+            for c in catalog['head']:
+                if abs(catalog['head'][c]['starttime'] - date) <= 5:
+                    evn = c
+                    break
+                elif (catalog['head'][c]['starttime'] - date) > 5:
+                    evn = date.strftime('%Y%m%d.%H%M%S.%f')[:-4] + '.SAC'
+                    break
+                else:
+                    evn = date.strftime('%Y%m%d.%H%M%S.%f')[:-4] + '.SAC'
+            if not phase.__contains__(evn):
+                phase[evn] = {}
+                mag[evn] = words[6]
+                dist[evn] = {}
+        else:
+            words = line.split()
+            st = words[0].split('/')[1]
+            phase_type = words[3][0]
+            arrival = UTCDateTime(words[4] + ' ' + words[5]) - 8 * 3600
+            if not phase[evn].__contains__(st):
+                phase[evn][st] = {}
+                dist[evn][st] = words[1]
+            if phase[evn][st].__contains__(phase_type):
+                phase[evn][st][phase_type] = min(arrival, phase[evn][st][phase_type])
+            else:
+                phase[evn][st][phase_type] = arrival
+    phnet = phase
+    np.save(npy_file, phnet)
+
+
 if __name__ == '__main__':
     phnetcsv2npy(csv_file='./XFJ_output/picks.csv',
                  npy_file='../results/data/phnet.npy')
-    # eqtcsv2npy(csv_file='../data/results/xfj_detections/traces_outputs/X_prediction_results.csv',
-    #            npy_file='../../results/data/EQT.npy')
+    # eqtcsv2npy(csv_file='../data/XFJ1121V2/traces_outputs/X_prediction_results.csv',
+    #            npy_file='../data/XFJ1121V2/EQT.npy')
+    # okeqpha2npy(input_file='../data/xc/original_pick_data/okeqpha.dat',
+    #             catalogfile='../data/xc/catalog.npy',
+    #             npy_file='../data/xc/phnet.npy')
