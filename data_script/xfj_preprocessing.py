@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 import time
-from dataIO import fullcatalog_reader, phases2npy
+from dataIO import fullcatalog_reader, phases2npy, seed2h5pyv2
 from sacIO import seed2sac
 import glob
 import os
@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 
 
 def run_xfj_catalog():
-    fullcatalog_reader(input_file=r'../raw_data/XFJ/2010-2019catalog.txt'
-                       , output_dir=r'../raw_data/__xfjcache__')
-    phases2npy(input_dir=r'../raw_data/XFJ/xfjml0_phase',
-               output_dir=r'../raw_data/__xfjcache__')
+    # fullcatalog_reader(input_file=r'../raw_data/XFJ1121/台网完全目录交换格式1121.txt'
+    #                    , output_dir=r'../raw_data/__xfjcache__')
+    # phases2npy(input_dir=r'../raw_data/XFJ1121/xfj.phase',
+    #            output_dir=r'../raw_data/__xfjcache__')
     catalog_head = np.load('../raw_data/__xfjcache__/catalog_head.npy', allow_pickle=True).item()
     catalog_ph_dist = np.load('../raw_data/__xfjcache__/catalog_ph_dist.npy', allow_pickle=True).item()
     catalog = {'head': {}, 'phase': {}, 'dist': {}}
@@ -26,7 +26,14 @@ def run_xfj_catalog():
             catalog['phase'][ev] = catalog_ph_dist['phase'][ev]
             catalog['dist'][ev] = catalog_ph_dist['dist'][ev]
             # breakpoint()
-    np.save('../raw_data/XFJ/catalog.npy', catalog)
+    np.save('../raw_data/XFJ1121/catalog.npy', catalog)
+
+
+def run_xfj_eqtdata():
+    # seed2h5pyv2(seed_dir=r'../raw_data/XFJ1121/xfj.seed',
+    #             output_dir=r'../processed_data/XFJ1121/test_set')
+    seed2h5pyv2(seed_dir=r'../raw_data/XFJ1121/xfj.seed',
+                output_dir=r'../processed_data/1daytest')
 
 
 def run_xfj_seed2sac(input_dir, output_dir):
@@ -105,7 +112,8 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
 
 if __name__ == '__main__':
     start = time.process_time()
-    run_xfj_catalog()
+    # run_xfj_catalog()
+    run_xfj_eqtdata()
     # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')
     # run_xfj_sac2phasenetdata(input_dir='../raw_data/XFJ/xfjml0_sac', output_dir='../raw_data/phasenet_input',
     #                          catalogfile='../raw_data/XFJ/catalog.npy')

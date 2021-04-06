@@ -27,7 +27,7 @@ def gmt_inputer(catalogfile, stfile, eqfile):
                     stlo = sac_data[0].stats.sac['stlo']
                     stla = sac_data[0].stats.sac['stla']
                     if sac_data[0].stats.network == 'GD':
-                        stfile.write(st.ljust(4) + '%8.2f' % stla + '%8.2f' % stlo + '\n')
+                        stfile.write(st.ljust(4) + '%8.3f' % stla + '%8.3f' % stlo + '\n')
                         stnm.append(st)
                     break
     stfile.close()
@@ -35,13 +35,27 @@ def gmt_inputer(catalogfile, stfile, eqfile):
         eqlon = catalog['head'][evn]['lon']
         eqlat = catalog['head'][evn]['lat']
         eqmag = catalog['head'][evn]['ML']
-        eqfile.write(evn + '%8.2f' % eqlat + '%8.2f' % eqlon + '%8.2f' % eqmag + '\n')
+        eqfile.write(evn + '%8.3f' % eqlat + '%8.3f' % eqlon + '%8.2f' % eqmag + '\n')
         # breakpoint()
     eqfile.close()
 
 
+def phasenum_statistical(catalogfile):
+    catalog = np.load(catalogfile, allow_pickle=True).item()
+    stnum = 0
+    phnum = 0
+    for evn in catalog['phase']:
+        for st in catalog['phase'][evn]:
+            stnum += 1
+            for ph in catalog['phase'][evn][st]:
+                phnum += 1
+    print('STnum:' + str(stnum) + '\n')
+    print('phnum:' + str(phnum) + '\n')
+
+
 if __name__ == '__main__':
     start = time.process_time()
-    gmt_inputer(catalogfile='../data/catalog.npy', stfile='../gmt/st.dat', eqfile='../gmt/eq.dat')
+    # gmt_inputer(catalogfile='../data/xfj/catalog.npy', stfile='../gmt/st.dat', eqfile='../gmt/eq.dat')
+    phasenum_statistical(catalogfile='../data/xfj/catalog.npy')
     end = time.process_time()
     print(end - start)

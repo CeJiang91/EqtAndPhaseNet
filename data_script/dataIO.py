@@ -184,6 +184,97 @@ def seed2h5py(seed_dir, train_path, processed_dir):
     csv_file.close()
 
 
+def seed2h5pyv2(seed_dir, output_dir):
+    seed_files = glob.glob(r'%s/*.seed' % seed_dir)
+    catalog = np.load(join(seed_dir, '..', "catalog.npy"), allow_pickle=True).item()
+    net_phases = catalog['phase']
+    # # 数据处理逻辑
+    # 1.读取文件名,波形数据和文件（事件）对应的震相数据
+    # 2.遍历波形
+    # 3.若该文件（事件）对应的震相数据中包含波形对应的台站，且其震相类型为P，则保存该数据
+    # 4.波形序列号为trn，P波到时为p_t,波形范围是[pt-10,pt+50]，故pt在截取后对应点为1001
+    # 5.预处理（去倾，滤波，归一化），滤波频带为[3,20]
+    # 后续可改良，统一输入目录，根据发震时刻截取地震
+    startt = time.process_time()
+    trn = 0
+    f = h5py.File(join(output_dir, "traces.hdf5"), "w")
+    data = f.create_group('data')
+    sts = []
+    trs_name = []
+    for file in seed_files:
+        #----------delete----------------
+        if trn>5000:
+            break
+        #------------
+        skip_station = 'NoStation'
+        fn = basename(file).split('.seed')[0]
+        try:
+            waves = read(file)
+        except TypeError:
+            print('Unknown format:')
+            print(fn)
+            continue
+        if fn in net_phases:
+            event_phases = net_phases[fn]
+        else:
+            continue
+        channel_num = 0
+        for tr in waves:
+            if (event_phases.keys().__contains__(tr.stats.station)) and (
+                    event_phases[tr.stats.station].keys().__contains__('P')):
+                if (tr.stats.sampling_rate != 100) or (tr.stats.station == skip_station):
+                    continue
+                now_st = tr.stats.station
+                now_net = tr.stats.network
+                tn = now_st + '.' + now_net + '_' + fn.split('.')[1] + '.' + fn.split('.')[2] + '_EV'
+                p_t = event_phases[now_st]['P'] - 8 * 3600
+                start_time_str = (p_t - 10).strftime('%Y-%m-%d %H:%M:%S.%f')
+                temp_tr = tr.slice(p_t - 10 + 0.01, p_t + 50)
+                if temp_tr.stats.npts < 6000:
+                    skip_station = tr.stats.station
+                    trn = trn - channel_num
+                    channel_num = 0
+                    continue
+                temp_tr.detrend()
+                trn += 1
+                # temp_tr.filter("bandpass", freqmin=3.0, freqmax=20)
+                temp_tr.normalize()
+                td = temp_tr.data.reshape(1, 6000)
+                if channel_num == 0:
+                    trs_data = np.zeros((3, 6000))
+                trs_data[channel_num, :] = td
+                channel_num += 1
+                # print(tr.id)
+                if channel_num == 3:
+                    # print('----------')
+                    channel_num = 0
+                    i = (trn - 1) // 3
+                    dsF = data.create_dataset(tn, data=trs_data.transpose(), dtype=np.dtype('<f4'))
+                    trs_name.append(tn)
+                    sts.append(start_time_str)
+                    try:
+                        dsF.attrs["trace_name"] = trs_name[i]
+                    except IndexError:
+                        breakpoint()
+                    dsF.attrs["receiver_code"] = trs_name[i].split('.')[0]
+                    dsF.attrs["network_code"] = trs_name[i].split('.')[1].split('_')[0]
+                    dsF.attrs["receiver_latitude"] = '-999'
+                    dsF.attrs["receiver_longitude"] = '-999'
+                    dsF.attrs["receiver_elevation_m"] = '-999'
+                    dsF.attrs['trace_start_time'] = sts[i]
+    endt = time.process_time()
+    print('Consumed time :' + str(endt - startt))
+    f.close()
+    # output to csv_file
+    csv_file = open(join(output_dir, "traces.csv"), 'w', newline='')
+    output_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    output_writer.writerow(['trace_name'])
+    for i in range(trn // 3):
+        output_writer.writerow([trs_name[i]])
+        csv_file.flush()
+    csv_file.close()
+
+
 def pharep2npy(input_dir, output_dir):
     fp = open(join(input_dir, 'se_pharep.dat'))
     lines = fp.readlines()
@@ -235,7 +326,8 @@ def sac2h5py(input_dir, processed_dir):
     trs_name = []
     sts = []
     for root, dirs, files in walk(input_dir):
-        dirs.sort()
+        # dirs.sort()
+        # for f in files:
         for f in sorted(files):
             tr = read(join(root, f))[0]
             if tr.stats.npts < cutnpts:
@@ -282,35 +374,6 @@ def sac2h5py(input_dir, processed_dir):
         output_writer.writerow([trs_name[i]])
         csv_file.flush()
     csv_file.close()
-
-
-def okeqpha2npy(input_dir, output_dir):
-    fp = open(join(input_dir, 'okeqpha.dat'))
-    lines = fp.readlines()
-    phase = {}
-    evn = 'None'
-    mag = {}
-    for line in lines:
-        if line[0] == '#':
-            words = line.split()
-            date = UTCDateTime(line[2:25]) + 0.001
-            evn = date.strftime('%Y%m%d.%H%M%S.%f')[:-4] + '.SAC'
-            if not phase.__contains__(evn):
-                phase[evn] = {}
-                mag[evn] = words[6]
-        else:
-            words = line.split()
-            st = words[0].split('/')[1]
-            phase_type = words[3][0]
-            arrival = UTCDateTime(words[4] + ' ' + words[5])
-            if not phase[evn].__contains__(st):
-                phase[evn][st] = {}
-            if phase[evn][st].__contains__(phase_type):
-                phase[evn][st][phase_type] = min(arrival, phase[evn][st][phase_type])
-            else:
-                phase[evn][st][phase_type] = arrival
-    np.save(join(output_dir, 'aieq_phases'), phase)
-    np.save(join(output_dir, 'aieq_mag.npy'), mag)
 
 
 def get_phasenet_snr(phase_dir, sac_dir):

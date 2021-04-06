@@ -33,13 +33,15 @@ def xc_validation():
     data = h5f['data']
     num = 0
     for ev in data:
+        if ev.split('.')[0] != 'XFJ':
+            continue
         for i in range(3):
             plt.plot(data[ev][:, i]+i)
         plt.show()
         plt.savefig(os.path.join(output_dir, ev+'.png'))
         plt.close()
         num += 1
-        if num > 100:
+        if num > 1000:
             break
         # breakpoint()
     h5f.close()
