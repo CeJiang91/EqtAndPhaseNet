@@ -9,6 +9,7 @@ import shutil
 import numpy as np
 from obspy import read
 import csv
+import matplotlib.pyplot as plt
 
 
 def run_xfj_catalog():
@@ -110,8 +111,7 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
 if __name__ == '__main__':
     start = time.process_time()
     # run_xfj_catalog()
-    # run_xfj_eqtdata(seed_dir=r'../raw_data/XFJ1121/xfj.seed',
-    #                 output_dir=r'../processed_data/1daytest')
+    run_xfj_eqtdata()
     # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')
     # run_xfj_sac2phasenetdata(input_dir='../raw_data/XFJ/xfjml0_sac', output_dir='../raw_data/phasenet_input',
     #                          catalogfile='../raw_data/XFJ/catalog.npy')
