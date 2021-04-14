@@ -417,7 +417,7 @@ def get_phasenet_snr(phase_dir, sac_dir):
     np.save(join(phase_dir, 'aieq_snr'), aieq_snr)
 
 
-def station_loc(input_dir, output_dir):
+def sac_location_of_sta(input_dir, output_dir):
     files = glob.glob(r'%s/*.SAC' % input_dir)
     sts = []
     lon = []
@@ -433,3 +433,22 @@ def station_loc(input_dir, output_dir):
             lon.append(stlo)
             sts.append(st)
             the_file.write(st + '%8.2f' % stla + '%8.2f' % stlo + '\n')
+
+
+def catalognpy_location_of_sta(input_file, output_file):
+    catalog = np.load(input_file,allow_pickle=True).item()
+    sts = []
+    lon = []
+    lat = []
+    loc_file = open(output_file, 'w')
+    for f in catalog:
+        tr = read(f)
+        st = tr[0].stats.station
+        if st not in sts:
+            stla = tr[0].stats.sac['stla']
+            stlo = tr[0].stats.sac['stlo']
+            lat.append(stla)
+            lon.append(stlo)
+            sts.append(st)
+            loc_file.write(st + '%8.2f' % stla + '%8.2f' % stlo + '\n')
+    loc_file.close()
