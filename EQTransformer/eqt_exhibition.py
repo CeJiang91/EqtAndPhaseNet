@@ -1,6 +1,8 @@
 from __future__ import division
 from __future__ import print_function
 
+import shutil
+
 import matplotlib
 from keras.models import load_model
 from keras.optimizers import Adam
@@ -56,9 +58,11 @@ def run_predictor():
               spLimit=60)
 
 
-def model_exhibit(input_dir='../processed_data/1daytest',
+def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
+                  out_image_dir = './eqt_layer_image',
+                  input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinput/tenyears_set',
                   input_model='./data/EqT_model.h5',
-                  output_dir='../results/data/thiscanbedelete/',
+                  output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/thiscanbedelete/',
                   output_probabilities=False,
                   detection_threshold=0.3,
                   P_threshold=0.1,
@@ -104,6 +108,15 @@ def model_exhibit(input_dir='../processed_data/1daytest',
         "keepPS": keepPS,
         "spLimit": spLimit
     }
+    if os.path.isdir(out_image_dir):
+        print('============================================================================')
+        print(f' *** {out_image_dir} already exists!')
+        inp = input(" --> Type (Yes or y) to create a new empty directory! otherwise it will overwrite!   ")
+        if inp.lower() == "yes" or inp.lower() == "y":
+            shutil.rmtree(out_image_dir)
+            os.makedirs(out_image_dir)
+    else:
+        os.makedirs(out_image_dir)
 
     class DummyFile(object):
         file = None
@@ -146,10 +159,20 @@ def model_exhibit(input_dir='../processed_data/1daytest',
     df = pd.read_csv(args['input_csv'])
     prediction_list = df.trace_name.tolist()
     fl = h5py.File(args['input_hdf5'], 'r')
-    list_generator = generate_arrays_from_file(prediction_list, args['batch_size'])
     # -------------------
-    sa = np.array(fl['data']['XFJ.GD_201102261101.0001_EV']).reshape(1, 6000, 3)
-    sout = model(sa)
+    sa = np.array(fl['data'][event_id])
+
+    def awgn(x, snr):
+        snr = 10 ** (snr / 10.0)
+        xpower = np.sum(x ** 2) / len(x)
+        npower = xpower / snr
+        noise = np.random.randn(len(x)) * np.sqrt(npower)
+        return x + noise
+
+    for i in range(0, 3):
+        sa[:, i] = awgn(sa[:, i], 0)
+    sa = sa.reshape(1, 6000, 3)
+    # sout = model(sa)
     # ----------------------code from network._run_internal_graph
     # Dictionary mapping reference tensors to computed tensors.
     inputs = sa
@@ -250,7 +273,9 @@ def model_exhibit(input_dir='../processed_data/1daytest',
         plt.savefig(os.path.join('./eqt_layer_image', '%003d' % depth + '.png'))
         plt.close()
     # ---------------------------------------------
-    plt.plot(sa[0, :, 1])
+    plt.plot(sa[0, :, 0])
+    plt.plot(sa[0, :, 1] + 2)
+    plt.plot(sa[0, :, 2] + 4)
     plt.savefig('./eqt_layer_image/input.png')
     plt.close()
 
@@ -258,6 +283,6 @@ def model_exhibit(input_dir='../processed_data/1daytest',
 if __name__ == '__main__':
     start = time.process_time()
     # run_predictor()
-    model_exhibit()
+    model_exhibit(event_id='XFJ.GD_201112231459.0002_EV')
     end = time.process_time()
     print(end - start)
