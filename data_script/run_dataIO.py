@@ -2,7 +2,7 @@
 # coding: utf-8
 import time
 from dataIO import phases2npy, seed2h5py, cataloglist2npy, sac2h5py, pharep2npy, get_phasenet_snr\
-    , fullcatalog_reader, catalognpy_location_of_sta
+    , fullcatalog_reader, catalognpy_location_of_staeq
 
 
 def run_phases2npy():
@@ -41,9 +41,10 @@ def run_get_phasenet_snr():
 
 
 def run_location_of_sta():
-    catalognpy_location_of_sta(input_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/catalog.npy',
-                                          output_file='/media/jiangce/My Passport/work/SeismicData/'
-                                                      'XFJ1121/location_of_sta')
+    # 'GD.201610281555.0002' has the most of stations
+    catalognpy_location_of_staeq(catalog_file='/home/jc/work/XFJ1121/catalog.npy',
+                                 output_dir='/home/jc/work/XFJ1121/',
+                                 sac_dir='/home/jc/work/XFJ1121/xfj.sac/GD.201810311530.0003.SAC/')
 
 
 if __name__ == '__main__':
@@ -56,6 +57,5 @@ if __name__ == '__main__':
     # if project == 'xc':
         # empty
     run_location_of_sta()
-    print('haha')
     end = time.process_time()
     print(end - start)

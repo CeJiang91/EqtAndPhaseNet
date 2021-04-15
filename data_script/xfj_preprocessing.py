@@ -12,12 +12,12 @@ import csv
 
 
 def run_xfj_catalog():
-    # fullcatalog_reader(input_file=r'../raw_data/XFJ1121/台网完全目录交换格式1121.txt'
-    #                    , output_dir=r'../raw_data/__xfjcache__')
-    # phases2npy(input_dir=r'../raw_data/XFJ1121/xfj.phase',
-    #            output_dir=r'../raw_data/__xfjcache__')
-    catalog_head = np.load('../raw_data/__xfjcache__/catalog_head.npy', allow_pickle=True).item()
-    catalog_ph_dist = np.load('../raw_data/__xfjcache__/catalog_ph_dist.npy', allow_pickle=True).item()
+    fullcatalog_reader(input_file=r'../../XFJ1121/台网完全目录交换格式1121.txt'
+                       , output_dir=r'../../XFJ1121/__xfjcache__')
+    phases2npy(input_dir=r'../../XFJ1121/xfj.phase',
+               output_dir=r'../../XFJ1121/__xfjcache__')
+    catalog_head = np.load('../../XFJ1121/__xfjcache__/catalog_head.npy', allow_pickle=True).item()
+    catalog_ph_dist = np.load('../../XFJ1121/__xfjcache__/catalog_ph_dist.npy', allow_pickle=True).item()
     catalog = {'head': {}, 'phase': {}, 'dist': {}}
     for ev in catalog_ph_dist['phase']:
         if ev in catalog_head:
@@ -25,7 +25,7 @@ def run_xfj_catalog():
             catalog['phase'][ev] = catalog_ph_dist['phase'][ev]
             catalog['dist'][ev] = catalog_ph_dist['dist'][ev]
             # breakpoint()
-    np.save('../raw_data/XFJ1121/catalog.npy', catalog)
+    np.save('../../XFJ1121//catalog.npy', catalog)
 
 
 def run_xfj_eqtdata(seed_dir, output_dir):
@@ -109,8 +109,8 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
 
 if __name__ == '__main__':
     start = time.process_time()
-    # run_xfj_catalog()
-    run_xfj_eqtdata()
+    run_xfj_catalog()
+    # run_xfj_eqtdata()
     # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')
     # run_xfj_sac2phasenetdata(input_dir='/home/jc/work/XFJ1121/xfj.sac',
     #                          output_dir='/home/jc/work/XFJ1121/phasenet_input',

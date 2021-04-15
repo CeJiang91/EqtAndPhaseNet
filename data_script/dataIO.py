@@ -101,10 +101,10 @@ def fullcatalog_reader(input_file, output_dir):
                 ML = -999.0
             else:
                 ML = float(line[58:61])
-            if line[29:32].isspace():
+            if line[46:50].isspace():
                 depth = -999
             else:
-                depth = int(line[29:32])
+                depth = int(line[46:50])
         if line[0:3] == 'DEO':
             evn = line[6:26]
             catalog[evn] = {}
@@ -435,13 +435,14 @@ def sac_location_of_sta(input_dir, output_dir):
             the_file.write(st + '%8.2f' % stla + '%8.2f' % stlo + '\n')
 
 
-def catalognpy_location_of_sta(input_file, output_file):
-    catalog = np.load(input_file,allow_pickle=True).item()
+def catalognpy_location_of_staeq(catalog_file, output_dir, sac_dir):
+    catalog = np.load(catalog_file,allow_pickle=True).item()
+    sac_files = glob.glob(r'%s/*.GD.*.SAC' % sac_dir)
     sts = []
     lon = []
     lat = []
-    loc_file = open(output_file, 'w')
-    for f in catalog:
+    sta_file = open(join(output_dir, 'location_of_sta.txt'), 'w')
+    for f in sac_files:
         tr = read(f)
         st = tr[0].stats.station
         if st not in sts:
@@ -450,5 +451,21 @@ def catalognpy_location_of_sta(input_file, output_file):
             lat.append(stla)
             lon.append(stlo)
             sts.append(st)
-            loc_file.write(st + '%8.2f' % stla + '%8.2f' % stlo + '\n')
-    loc_file.close()
+            sta_file.write('%6s' % st + '%8.3f' % stla + '%8.3f' % stlo + '\n')
+    sta_file.close()
+    eqs = []
+    lon = []
+    lat = []
+    ML = []
+    depth = []
+    eq_file = open(join(output_dir, 'location_of_eq.txt'), 'w')
+    for ev in catalog['head']:
+        stla = catalog['head'][ev]['lat']
+        stlo = catalog['head'][ev]['lon']
+        ML = catalog['head'][ev]['ML']
+        depth = catalog['head'][ev]['depth']
+        lat.append(stla)
+        lon.append(stlo)
+        eqs.append(ev)
+        eq_file.write('%6s' % ev + '%8.3f' % stla + '%8.3f' % stlo + '%7.1f' % depth+'%5.1f' % ML+'\n')
+    eq_file.close()
