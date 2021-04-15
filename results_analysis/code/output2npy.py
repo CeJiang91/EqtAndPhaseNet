@@ -59,12 +59,12 @@ def eqtcsv2npy(csv_file, npy_file):
     np.save(npy_file, EQT)
 
 
-def phnetcsv2npy(csv_file, npy_file):
+def phnetcsv2npy(csv_file, waveform_csv, npy_file):
     # catalog = np.load('../raw_data/XFJ/catalog.npy', allow_pickle=True).item()
-    wav = np.loadtxt("./XFJ_dataset/waveform.csv",
+    wav = np.loadtxt(waveform_csv,
                      dtype='|S30', skiprows=1, delimiter=',', usecols=(0, 1, 2), unpack=True).astype(str)
     picks = np.loadtxt(csv_file,
-                       dtype='|S30', skiprows=1, delimiter=',', usecols=(0, 1, 2, 3, 4), unpack=True)
+                       dtype='|S30', skiprows=1, delimiter=',', usecols=(0, 1, 2, 3, 4), unpack=True).astype(str)
     phnet = {}
     for i in range(len(picks[0])):
         fn = picks[0][i]
@@ -147,8 +147,9 @@ def okeqpha2npy(input_file, catalogfile, npy_file):
 
 
 if __name__ == '__main__':
-    phnetcsv2npy(csv_file='./XFJ_output/picks.csv',
-                 npy_file='../results/data/phnet.npy')
+    phnetcsv2npy(csv_file='/home/jc/work/XFJ1121/phasenet_output/picks.csv',
+                 waveform_csv = '/home/jc/work/XFJ1121/phasenet_input/waveform.csv',
+                 npy_file='/home/jc/work/XFJ1121/phasenet_output/phnet.npy')
     # eqtcsv2npy(csv_file='../data/XFJ1121V2/traces_outputs/X_prediction_results.csv',
     #            npy_file='../data/XFJ1121V2/EQT.npy')
     # okeqpha2npy(input_file='../data/xc/original_pick_data/okeqpha.dat',

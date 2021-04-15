@@ -40,8 +40,8 @@ def run_get_phasenet_snr():
     get_phasenet_snr(phase_dir='../data/processed_data', sac_dir=r'../data/raw_data/phasenet_manul/aieq/03')
 
 
-def run_location_of_sta():
-    # 'GD.201610281555.0002' has the most of stations
+def run_location_of_staeq():
+    # 'GD.201610281555.0002' and 'GD.201810311530.0003' have the most of stations
     catalognpy_location_of_staeq(catalog_file='/home/jc/work/XFJ1121/catalog.npy',
                                  output_dir='/home/jc/work/XFJ1121/',
                                  sac_dir='/home/jc/work/XFJ1121/xfj.sac/GD.201810311530.0003.SAC/')
@@ -49,13 +49,6 @@ def run_location_of_sta():
 
 if __name__ == '__main__':
     start = time.process_time()
-    # project = 'xfj'
-    # if project == 'xfj':
-        # run_fullcatalog_reader()
-        # run_phases2npy()
-        # run_seed2h5py()
-    # if project == 'xc':
-        # empty
-    run_location_of_sta()
+    run_location_of_staeq()
     end = time.process_time()
     print(end - start)
