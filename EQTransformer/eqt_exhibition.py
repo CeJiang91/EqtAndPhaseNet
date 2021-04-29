@@ -2,7 +2,6 @@ from __future__ import division
 from __future__ import print_function
 
 import shutil
-
 import matplotlib
 from keras.models import load_model
 from keras.optimizers import Adam
@@ -40,9 +39,9 @@ except Exception:
 
 
 def run_predictor():
-    predictor(input_dir='../processed_data/1daytest',
+    predictor(input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1day.eqtinput',
               input_model='./data/EqT_model.h5',
-              output_dir='../results/data/thiscanbedelete/',
+              output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/thiscanbedelete/',
               estimate_uncertainty=False,
               output_probabilities=False,
               number_of_sampling=5,
@@ -59,7 +58,7 @@ def run_predictor():
 
 
 def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
-                  out_image_dir = './eqt_layer_image',
+                  out_image_dir='./eqt_layer_image',
                   input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinput/tenyears_set',
                   input_model='./data/EqT_model.h5',
                   output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/thiscanbedelete/',
@@ -169,11 +168,11 @@ def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
         noise = np.random.randn(len(x)) * np.sqrt(npower)
         return x + noise
 
-    for i in range(0, 3):
-        sa[:, i] = awgn(sa[:, i], 0)
+    # for i in range(0, 3):
+    #     sa[:, i] = awgn(sa[:, i], -5)
     sa = sa.reshape(1, 6000, 3)
     # sout = model(sa)
-    # ----------------------code from network._run_internal_graph
+    # ----------------------code from tensorflow.python.keras.engine.network import ._run_internal_graph
     # Dictionary mapping reference tensors to computed tensors.
     inputs = sa
 
@@ -217,12 +216,16 @@ def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
     depth_keys.sort(reverse=True)
     # Ignore the InputLayers when computing the graph.
     depth_keys = depth_keys[1:]
-
+    # ----------------------
+    depth_layers_file = open('depth_layers.txt', 'w')
+    depth_layers_file.write('depth  node\n')
     for depth in depth_keys:
         nodes = model._nodes_by_depth[depth]
+        layers = []
         for node in nodes:
             # This is always a single layer, never a list.
             layer = node.outbound_layer
+            layers.append(layer.name)
 
             if all(
                     str(id(tensor)) in tensor_dict
@@ -267,15 +270,44 @@ def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
                         nest.flatten(node.output_tensors), nest.flatten(output_tensors)):
                     x_id = str(id(x))
                     tensor_dict[x_id] = [y] * model._tensor_usage_count[x_id]
+                    for kk in range(0, y[0].shape[1]):
+                        normal_y = (y[0][:, kk] - min(y[0][:, kk])) / (max(y[0][:, kk]) - min(y[0][:, kk]))
+                        # plt.plot(y[0][:, kk] + kk)
+                        plt.plot(normal_y + kk)
+                    plt.savefig(os.path.join('./eqt_layer_image', '%003d_' % depth +
+                                             x.name.split(':')[0].replace('/','.')+'.png'))
+                    plt.close()
         # -----------
-        for kk in range(0, output_tensors[0].shape[1]):
-            plt.plot(output_tensors[0][:, kk] + kk)
-        plt.savefig(os.path.join('./eqt_layer_image', '%003d' % depth + '.png'))
-        plt.close()
+        # # print('%3d' % len(nodes))
+        # if depth ==2:
+        #     breakpoint()
+        line = '%5d' % depth
+        for l in layers:
+            line = line + '%30s' % l
+        depth_layers_file.write(line + '\n')
+        # # image_s:i=0 image_p:i=1 image_detect:i=2
+        # i=1
+        # if type(output_tensors) == list:
+        #     # print('%5d ' % depth + str(output_tensors[i].shape))
+        #     for kk in range(0, output_tensors[i][0].shape[1]):
+        #         plt.plot(output_tensors[i][0][:, kk] + kk)
+        # else:
+        #     # print('%5d ' % depth + str(output_tensors.shape))
+        #     for kk in range(0, output_tensors[0].shape[1]):
+        #         plt.plot(output_tensors[0][:, kk] + kk)
+        # # try:
+        # #     print(str(output_tensors.shape))
+        # # except AttributeError:
+        # #     breakpoint()
+        # plt.savefig(os.path.join('./eqt_layer_image', '%003d' % depth + '.png'))
+        # plt.close()
     # ---------------------------------------------
+    depth_layers_file.close()
     plt.plot(sa[0, :, 0])
     plt.plot(sa[0, :, 1] + 2)
     plt.plot(sa[0, :, 2] + 4)
+    plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[0].output_tensors))][0][0][200:-200])+200, ls='--', c='black')
+    plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[1].output_tensors))][0][0][200:-200])+200, ls='--', c='red')
     plt.savefig('./eqt_layer_image/input.png')
     plt.close()
 
@@ -283,6 +315,7 @@ def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
 if __name__ == '__main__':
     start = time.process_time()
     # run_predictor()
+    # p=1001 s=1325
     model_exhibit(event_id='XFJ.GD_201112231459.0002_EV')
     end = time.process_time()
     print(end - start)

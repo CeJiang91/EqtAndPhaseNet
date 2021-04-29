@@ -109,8 +109,9 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
 
 if __name__ == '__main__':
     start = time.process_time()
-    run_xfj_catalog()
-    # run_xfj_eqtdata()
+    # run_xfj_catalog()
+    run_xfj_eqtdata(seed_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1day.seed',
+                    output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1day.eqtinput')
     # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')
     # run_xfj_sac2phasenetdata(input_dir='/home/jc/work/XFJ1121/xfj.sac',
     #                          output_dir='/home/jc/work/XFJ1121/phasenet_input',
