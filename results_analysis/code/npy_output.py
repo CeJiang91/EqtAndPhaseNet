@@ -14,7 +14,7 @@ def eqtcsv2npy(csv_file, npy_file):
     for line in csv_file:
         net = line[1].strip()
         st = line[2].strip()
-        evn = net + '.' + line[0].split('_')[1]
+        evn = 'GD.' + line[0].split('_')[1]
         p_arrival = line[11]
         p_prob = line[12]
         p_snr = line[14]
@@ -147,11 +147,11 @@ def okeqpha2npy(input_file, catalogfile, npy_file):
 
 
 if __name__ == '__main__':
-    phnetcsv2npy(csv_file='/home/jc/work/XFJ1121/phasenet_output/picks.csv',
-                 waveform_csv='/home/jc/work/XFJ1121/phasenet_input/waveform.csv',
-                 npy_file='/home/jc/work/XFJ1121/phasenet_output/phnet.npy')
-    # eqtcsv2npy(csv_file='../data/XFJ1121V2/traces_outputs/X_prediction_results.csv',
-    #            npy_file='../data/XFJ1121V2/EQT.npy')
+    # phnetcsv2npy(csv_file='/home/jc/work/XFJ1121/phasenet_output/picks.csv',
+    #              waveform_csv='/home/jc/work/XFJ1121/phasenet_input/waveform.csv',
+    #              npy_file='/home/jc/work/XFJ1121/phasenet_output/phnet.npy')
+    eqtcsv2npy(csv_file='../../../SeismicData/XFJ1121/eqtoutput0.02/traces_outputs/X_prediction_results.csv',
+               npy_file='../../../SeismicData/XFJ1121/eqtoutput0.02/EQT.npy')
     # okeqpha2npy(input_file='../data/xc/original_pick_data/okeqpha.dat',
     #             catalogfile='../data/xc/catalog.npy',
     #             npy_file='../data/xc/phnet.npy')

@@ -529,6 +529,9 @@ def pred_fn(args, data_reader, figure_dir=None, result_dir=None, log_dir=None):
                                         figure_dir = figure_dir,
                                         args=args),
                                 range(len(pred_batch)))
+
+        # np.save('trace_prob.npy', pred_batch)
+
         for i in range(len(fname_batch)):
           row = "{},[{}],[{}],[{}],[{}]".format(fname_batch[i].decode(), " ".join(map(str,picks_batch[i][0][0])), " ".join(map(str,picks_batch[i][0][1])),
                                         " ".join(map(str,picks_batch[i][1][0])), " ".join(map(str,picks_batch[i][1][1])))

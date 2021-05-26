@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 import time
-from dataIO import phases2npy, seed2h5py, cataloglist2npy, sac2h5py, pharep2npy, get_phasenet_snr\
+from dataIO import phases2npy, seed2h5py, cataloglist2npy, sac2h5py, pharep2npy, get_phasenet_snr \
     , fullcatalog_reader, catalognpy_location_of_staeq
 
 
@@ -33,7 +33,8 @@ def run_sac2h5py():
 
 
 def run_pharep2npy():
-    pharep2npy(input_dir=r'../data/raw_data/test_sac', output_dir='../data/processed_data')
+    pharep2npy(input_dir=r'F:\work\SeismicData\phasenet_manul\maneq',
+               output_dir='F:\work\SeismicData\phasenet_manul\maneq')
 
 
 def run_get_phasenet_snr():
@@ -49,6 +50,8 @@ def run_location_of_staeq():
 
 if __name__ == '__main__':
     start = time.process_time()
-    run_location_of_staeq()
+    # run_location_of_staeq()
+    # run_pharep2npy()
+    np.load('F:\work\SeismicData\phasenet_manul\xc\catalog.npy', allow_pickle=True).item()
     end = time.process_time()
     print(end - start)

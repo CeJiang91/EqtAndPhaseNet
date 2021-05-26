@@ -7,8 +7,8 @@ from keras.models import load_model
 from keras.optimizers import Adam
 from tensorflow.python.framework import composite_tensor
 from tensorflow.python.keras import backend
-
-matplotlib.use('agg')
+import matplotlib as mpl
+mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -39,17 +39,17 @@ except Exception:
 
 
 def run_predictor():
-    predictor(input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1day.eqtinput',
+    predictor(input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1dayproblem.eqtinput',
               input_model='./data/EqT_model.h5',
               output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/thiscanbedelete/',
               estimate_uncertainty=False,
-              output_probabilities=False,
+              output_probabilities=True,
               number_of_sampling=5,
               loss_weights=[0.02, 0.40, 0.58],
-              detection_threshold=0.1,
-              P_threshold=0.1,
-              S_threshold=0.1,
-              number_of_plots=10,
+              detection_threshold=0.002,
+              P_threshold=0.002,
+              S_threshold=0.002,
+              number_of_plots=1000,
               plot_mode='time',
               batch_size=500,
               number_of_cpus=16,
@@ -57,6 +57,7 @@ def run_predictor():
               spLimit=60)
 
 
+# XFJ.GD_201101012348.0001_EV(no result) XFJ.GD_201112231459.0002_EV(good example)
 def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
                   out_image_dir='./eqt_layer_image',
                   input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinput/tenyears_set',
@@ -172,6 +173,7 @@ def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
     #     sa[:, i] = awgn(sa[:, i], -5)
     sa = sa.reshape(1, 6000, 3)
     # sout = model(sa)
+    # return 0
     # ----------------------code from tensorflow.python.keras.engine.network import ._run_internal_graph
     # Dictionary mapping reference tensors to computed tensors.
     inputs = sa
@@ -312,10 +314,89 @@ def model_exhibit(event_id='XFJ.GD_201112231459.0002_EV',
     plt.close()
 
 
+def prob_plot(prob_file, trace_file):
+    fl1 = h5py.File(trace_file, 'r')
+    fl2 = h5py.File(prob_file, 'r')
+    trs = fl1['data']
+    prob = fl2['probabilities']
+    for ev in prob:
+        prob[ev]
+        tr = trs[ev]
+        ########################################## ploting only in time domain
+        fig = plt.figure()
+        widths = [1]
+        heights = [1.6, 1.6, 1.6, 2.5]
+        spec5 = fig.add_gridspec(ncols=1, nrows=4, width_ratios=widths,
+                                 height_ratios=heights)
+
+        ax = fig.add_subplot(spec5[0, 0])
+        ymin, ymax = ax.get_ylim()
+        a = prob[ev][:,0]
+        pt = np.argmax(a)
+        b = prob[ev][:,1]
+        st = np.argmax(b)
+        plt.plot(tr[:, 0], 'k')
+        pl = plt.vlines(int(pt), ymin, ymax, color='c', linewidth=2)
+        sl = plt.vlines(int(st), ymin, ymax, color='m', linewidth=2)
+        x = np.arange(6000)
+        plt.xlim(800, 1600)#
+        plt.ylabel('Amplitude\nCounts')
+        plt.rcParams["figure.figsize"] = (8, 6)
+        legend_properties = {'weight': 'bold'}
+        plt.title('Trace Name: ' + 'GD.'+ev.split('_')[1])
+        ax = fig.add_subplot(spec5[1, 0])
+        plt.plot(tr[:, 1], 'k')
+        pl = plt.vlines(int(pt), ymin, ymax, color='c', linewidth=2)
+        sl = plt.vlines(int(st), ymin, ymax, color='m', linewidth=2)
+        plt.xlim(800, 1600)#
+        plt.ylabel('Amplitude\nCounts')
+        ax = fig.add_subplot(spec5[2, 0])
+        plt.plot(tr[:, 2], 'k')
+        pl = plt.vlines(int(pt), ymin, ymax, color='c', linewidth=2)
+        sl = plt.vlines(int(st), ymin, ymax, color='m', linewidth=2)
+        plt.xlim(800, 1600)#
+        plt.ylabel('Amplitude\nCounts')
+        ax.set_xticks([])
+        ax = fig.add_subplot(spec5[3, 0])
+        # x = np.linspace(0, tr.shape[0], tr.shape[0], endpoint=True)
+        plt.plot(x, prob[ev][:,0], '--', color='g', alpha=0.5, linewidth=1.5, label='Earthquake')
+        plt.plot(x, prob[ev][:,1], '--', color='b', alpha=0.5, linewidth=1.5, label='P_arrival')
+        plt.plot(x, prob[ev][:,2], '--', color='r', alpha=0.5, linewidth=1.5, label='S_arrival')
+        # pl = plt.vlines(int(pt), ymin, ymax, color='c', linewidth=2)
+        # sl = plt.vlines(int(st), ymin, ymax, color='m', linewidth=2)
+        # plt.tight_layout()
+        # plt.ylim(0,0.01)
+        plt.xlim(800, 1600)#
+        plt.ylabel('Probability')
+        plt.xlabel('Sample')
+        plt.legend(loc='lower center', bbox_to_anchor=(0., 1.17, 1., .102), ncol=3, mode="expand",
+                   prop=legend_properties, borderaxespad=0., fancybox=True, shadow=True)
+        # plt.yticks(np.arange(0, 1.1, step=0.2))
+        axes = plt.gca()
+        axes.yaxis.grid(color='lightgray')
+
+        font = {'family': 'serif',
+                'color': 'dimgrey',
+                'style': 'italic',
+                'stretch': 'condensed',
+                'weight': 'normal',
+                'size': 12,
+                }
+        fig.tight_layout()
+        fig.savefig(ev + '.png', dpi=600)
+        plt.close(fig)
+        plt.clf()
+    # breakpoint()
+
+
 if __name__ == '__main__':
     start = time.process_time()
     # run_predictor()
     # p=1001 s=1325
-    model_exhibit(event_id='XFJ.GD_201112231459.0002_EV')
+    # model_exhibit(event_id='XFJ.GD_201101012348.0001_EV')
+    # run_predictor()
+    prob_plot(prob_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/'
+                        'thiscanbedelete/traces_outputs/prediction_probabilities.hdf5',
+              trace_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1dayproblem.eqtinput/traces.hdf5')
     end = time.process_time()
     print(end - start)

@@ -16,7 +16,9 @@ from EQTransformer.core.predictor import _get_snr
 from obspy import UTCDateTime
 import time
 import matplotlib as mpl
+
 mpl.use('TkAgg')
+import pandas as pd
 
 
 def snr_outputer(h5py_dir, catalog_file, snr_dir='./'):
@@ -159,45 +161,45 @@ def snr_deltat_3d_statistical_graph(catalog_file, snr_file, phnet_file, eqt_file
                     y_eqt.append(snr[evn][st])
     xrange = np.arange(-5, 6, 1)
     yrange = np.arange(0, 61, 2)
-    xv,yv = np.meshgrid(xrange,yrange)
+    xv, yv = np.meshgrid(xrange, yrange)
     zz_phnet = np.zeros(xv.shape)
     zz_eqt = np.zeros(xv.shape)
     # zz_phnet = np.full(xv.shape, np.nan)
     # zz_eqt = np.full(xv.shape, np.nan)
     for i in range(len(x_eqt)):
-        px=round(x_eqt[i],2)
-        py=round(y_eqt[i],0)
+        px = round(x_eqt[i], 2)
+        py = round(y_eqt[i], 0)
         index_x = np.where(xv[0] == px)[0]
-        if len(np.where(xv[0]==px)[0])==0:
+        if len(np.where(xv[0] == px)[0]) == 0:
             continue
         else:
             index_x = np.where(xv[0] == px)[0][0]
-        index_y = np.where(yv[:,0] == py)[0]
-        if len(np.where(yv[:,0]==py)[0])==0:
+        index_y = np.where(yv[:, 0] == py)[0]
+        if len(np.where(yv[:, 0] == py)[0]) == 0:
             continue
         else:
-            index_y = np.where(yv[:,0] == py)[0][0]
+            index_y = np.where(yv[:, 0] == py)[0][0]
         zz_eqt[index_y, index_x] += 1
     # ---phnet
     for i in range(len(x_phnet)):
-        px=round(x_phnet[i],2)
-        py=round(y_phnet[i],0)
+        px = round(x_phnet[i], 2)
+        py = round(y_phnet[i], 0)
         index_x = np.where(xv[0] == px)[0]
-        if len(np.where(xv[0]==px)[0])==0:
+        if len(np.where(xv[0] == px)[0]) == 0:
             continue
         else:
             index_x = np.where(xv[0] == px)[0][0]
-        index_y = np.where(yv[:,0] == py)[0]
-        if len(np.where(yv[:,0]==py)[0])==0:
+        index_y = np.where(yv[:, 0] == py)[0]
+        if len(np.where(yv[:, 0] == py)[0]) == 0:
             continue
         else:
-            index_y = np.where(yv[:,0] == py)[0][0]
+            index_y = np.where(yv[:, 0] == py)[0][0]
         zz_phnet[index_y, index_x] += 1
     # ------------
     fig = plt.figure()
-    ax = fig.add_subplot(111,projection='3d')
-    ax.plot_surface(xv, yv, 100*zz_eqt/eqtnum,color='b',alpha=0.3)
-    ax.plot_surface(xv, yv, 100*zz_phnet/phnetnum,color='r',alpha=0.3)
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(xv, yv, 100 * zz_eqt / eqtnum, color='b', alpha=0.3)
+    ax.plot_surface(xv, yv, 100 * zz_phnet / phnetnum, color='r', alpha=0.3)
     ax.set_xlabel('T(AI)-T(man)')
     ax.set_ylabel('SNR')
     ax.set_zlabel('Percent')
@@ -209,16 +211,117 @@ def snr_deltat_3d_statistical_graph(catalog_file, snr_file, phnet_file, eqt_file
     # breakpoint()
 
 
+def eqtphn_recall(phnet_file, eqt_file, phnet_csv, eqt_csv, catalog):
+    catalog = np.load(catalog, allow_pickle=True).item()
+    phase = catalog['phase']
+    phnet = np.load(phnet_file, allow_pickle=True).item()
+    eqt = np.load(eqt_file, allow_pickle=True).item()
+    csv_ph = pd.read_csv(phnet_csv)
+    csv_eqt = pd.read_csv(eqt_csv)
+    PP = 0
+    FP = 0
+    MissP = 0
+    PS = 0
+    FS = 0
+    MissS = 0
+    ExtraS = 0
+    for evn in csv_ph['fname']:
+        st = evn.split('_')[0]
+        ev = evn.split('_')[1][:-4]
+        if (ev not in phnet) or (st not in phnet[ev]):
+            MissS += 1
+            MissP += 1
+        else:
+            if 'P' in phnet[ev][st]:
+                for pt in phnet[ev][st]['P']:
+                    if abs(pt - phase[ev][st]['P'] + 8 * 3600) < 0.4:
+                        PP += 1
+                    else:
+                        FP += 1
+            if ('S' in phnet[ev][st]) and ('S' in phase[ev][st]):
+                for pt in phnet[ev][st]['S']:
+                    if abs(pt - phase[ev][st]['S'] + 8 * 3600) < 0.4:
+                        PS += 1
+                    else:
+                        FS += 1
+            elif ('S' in phase[ev][st]) and ('S' not in phnet[ev][st]):
+                MissS += 1
+            elif ('S' in phnet[ev][st]) and ('S' not in phase[ev][st]):
+                ExtraS += 1
+    with open('picker_report.txt', 'a') as the_file:
+        the_file.write('================== PhaseNet Info ==============================' + '\n')
+        the_file.write('the number of PhaseNet input: ' + str(len(csv_ph)) + '\n')
+        the_file.write('P recall of PhaseNet: ' + str(PP / len(csv_ph)) + '\n')
+        the_file.write('P precision of PhaseNet: ' + str(PP / (PP + FP)) + '\n')
+        the_file.write('P false picking num of PhaseNet: ' + str(FP) + '\n')
+        the_file.write('P positive picking num of PhaseNet: ' + str(PP) + '\n')
+        the_file.write('S recall of PhaseNet: ' + str(PS / (PS + MissS)) + '\n')
+        the_file.write('S precision of PhaseNet: ' + str(PS / (PS + FS)) + '\n')
+        the_file.write('S false picking num of PhaseNet: ' + str(FS) + '\n')
+        the_file.write('S positive picking num of PhaseNet: ' + str(PS) + '\n')
+    # breakpoint()
+    PP = 0
+    FP = 0
+    MissP = 0
+    PS = 0
+    FS = 0
+    MissS = 0
+    ExtraS = 0
+    for evn in csv_eqt['trace_name']:
+        st = evn.split('.')[0]
+        ev = 'GD.'+evn.split('_')[1]
+        if (ev not in eqt) or (st not in eqt[ev]):
+            MissS += 1
+            MissP += 1
+        else:
+            if 'P' in eqt[ev][st]:
+                for pt in eqt[ev][st]['P']:
+                    try:
+                        if abs(pt - phase[ev][st]['P'] + 8 * 3600) < 0.4:
+                            PP += 1
+                        else:
+                            FP += 1
+                    except KeyError:
+                        breakpoint()
+            if ('S' in eqt[ev][st]) and ('S' in phase[ev][st]):
+                for pt in eqt[ev][st]['S']:
+                    if abs(pt - phase[ev][st]['S'] + 8 * 3600) < 0.4:
+                        PS += 1
+                    else:
+                        FS += 1
+            elif ('S' in phase[ev][st]) and ('S' not in eqt[ev][st]):
+                MissS += 1
+            elif ('S' in eqt[ev][st]) and ('S' not in phase[ev][st]):
+                ExtraS += 1
+    with open('picker_report.txt', 'a') as the_file:
+        the_file.write('================== EQTransformer Info ==============================' + '\n')
+        the_file.write('the number of EQTransformer input: ' + str(len(csv_ph)) + '\n')
+        the_file.write('P recall of EQTransformer: ' + str(PP / len(csv_ph)) + '\n')
+        the_file.write('P precision of EQTransformer: ' + str(PP / (PP + FP)) + '\n')
+        the_file.write('P false picking num of PhaseNet: ' + str(FP) + '\n')
+        the_file.write('P positive picking num of PhaseNet: ' + str(PP) + '\n')
+        the_file.write('S recall of EQTransformer: ' + str(PS / (PS + MissS)) + '\n')
+        the_file.write('S precision of EQTransformer: ' + str(PS / (PS + FS)) + '\n')
+        the_file.write('S false picking num of PhaseNet: ' + str(FS) + '\n')
+        the_file.write('S positive picking num of PhaseNet: ' + str(PS) + '\n')
+    # breakpoint()
+
+
 if __name__ == '__main__':
     start = time.process_time()
     # snr_outputer(h5py_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinput/tenyears_set',
     #              catalog_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/catalog.npy',
     #              snr_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/')
-    snr_deltat_3d_statistical_graph(catalog_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/catalog.npy',
-                                    snr_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/snr.npz',
-                                    phnet_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/phasenet_output'
-                                               '/phnet.npy',
-                                    eqt_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtoutput/EQT.npy',
-                                    )
+    # snr_deltat_3d_statistical_graph(catalog_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/catalog.npy',
+    #                                 snr_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/snr.npz',
+    #                                 phnet_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/phasenet_output'
+    #                                            '/phnet.npy',
+    #                                 eqt_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtoutput/EQT.npy',
+    #                                 )
+    eqtphn_recall(phnet_file='../../../SeismicData/XFJ1121/phasenet_output/phnet.npy',
+                  eqt_file='../../../SeismicData/XFJ1121/eqtoutput0.02/EQT.npy',
+                  phnet_csv='../../../SeismicData/XFJ1121/phasenet_input/waveform.csv',
+                  eqt_csv='../../../SeismicData/XFJ1121/eqtinput/tenyears_set/traces.csv',
+                  catalog='../../../SeismicData/XFJ1121/catalog.npy')
     end = time.process_time()
     print(end - start)
