@@ -53,6 +53,14 @@ def run_xfj_seed2sac(input_dir, output_dir):
 
 
 def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
+    def standardize(data):
+        std_data = np.std(data, axis=1, keepdims=True)
+        data -= np.mean(data, axis=1, keepdims=True)
+        assert (std_data.shape[0] == data.shape[0])
+        std_data[std_data == 0] = 1
+        data /= std_data
+        return data
+
     if os.path.isdir(output_dir):
         print('============================================================================')
         print(f' *** {output_dir} already exists!')
@@ -81,11 +89,10 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
             trn += 1
             start_time = catalog['phase'][evn][st]['P'] - 10 - 8 * 3600
             tn = st + '_' + evn + '.npz'
-            tr = tr.slice(start_time, start_time + 60 - 0.01)
+            tr = tr.trim(start_time, start_time + 60 - 0.01, pad=True, fill_value=0)
             if tr.stats.npts < 6000:
                 continue
-            tr.detrend()
-            tr.normalize()
+            tr.detrend('constant')
             td = tr.data.reshape(1, 6000)
             if st not in dic['data']:
                 dic['data'][st] = np.zeros((3, 6000))
@@ -102,6 +109,7 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
                 dic['cn'][st] += 1
                 if dic['cn'][st] == 3:
                     data = dic['data'][st]
+                    data = standardize(data)
                     np.savez(os.path.join(output_dir, 'waveform_xfj', tn), data=data.transpose())
                     fname.append(tn)
                     output_writer.writerow([tn, evn, start_time])
