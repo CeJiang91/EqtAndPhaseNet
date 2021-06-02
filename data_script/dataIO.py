@@ -9,7 +9,8 @@ PS:Considering the specialty of phase data, this function could only be used at 
     we present function here for reference learning
 
 """
-from obspy import UTCDateTime, read
+from obspy import UTCDateTime, read,Stream
+from obspy.core.stream import Stream
 import numpy as np
 import glob
 import h5py
@@ -17,7 +18,7 @@ import csv
 from os.path import join, basename
 import time
 import re
-from os import walk
+from os import walk, remove
 from EQTransformer.core.predictor import _get_snr
 
 
@@ -202,10 +203,6 @@ def seed2h5pyv2(seed_dir, output_dir):
     sts = []
     trs_name = []
     for file in seed_files:
-        #----------delete----------------
-        if trn>5000:
-            break
-        #------------
         skip_station = 'NoStation'
         fn = basename(file).split('.seed')[0]
         try:
@@ -273,6 +270,134 @@ def seed2h5pyv2(seed_dir, output_dir):
         output_writer.writerow([trs_name[i]])
         csv_file.flush()
     csv_file.close()
+
+
+def seed2h5pyv3(seed_dir, output_dir):
+    seed_files = glob.glob(r'%s/*.seed' % seed_dir)
+    catalog = np.load(join(seed_dir, '..', "catalog.npy"), allow_pickle=True).item()
+    net_phases = catalog['phase']
+    # # 数据处理逻辑
+    # 1.读取文件名,波形数据和文件（事件）对应的震相数据
+    # 2.遍历波形
+    # 3.若该文件（事件）对应的震相数据中包含波形对应的台站，且其震相类型为P，则保存该数据
+    # 4.波形序列号为trn，P波到时为p_t,波形范围是[pt-10,pt+50]，故pt在截取后对应点为1001
+    # 5.预处理（去倾，滤波，归一化），滤波频带为[3,20]
+    # 6. preprocessing method is same as original method
+    # 后续可改良，统一输入目录，根据发震时刻截取地震
+    startt = time.process_time()
+    try:
+        remove(join(output_dir, "traces.hdf5"))
+        remove(join(output_dir, "traces.csv"))
+    except Exception:
+        pass
+    HDF = h5py.File(join(output_dir, "traces.hdf5"), 'a')
+    HDF.create_group("data")
+    csvfile = open(join(output_dir, "traces.csv"), 'w')
+    output_writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    output_writer.writerow(['trace_name', 'start_time', 'trace_category'])
+    csvfile.flush()
+    trn = 0
+    overlap = 0.3
+    tim_shift = int(60 - (overlap * 60))
+    sts = []
+    trs_name = []
+    count_chuncks = 0
+    fln = 0
+    c1 = 0
+    c2 = 0
+    c3 = 0
+    fl_counts = 1
+    slide_estimates = []
+    for file in seed_files:
+        skip_station = 'NoStation'
+        fn = basename(file).split('.seed')[0]
+        try:
+            waves = read(file)
+        except TypeError:
+            print('Unknown format:')
+            print(fn)
+            continue
+        if fn in net_phases:
+            event_phases = net_phases[fn]
+        else:
+            continue
+        channel_num = 0
+        for i in range(waves.__len__() // 3):
+            tr = waves[3 * i]
+            if (event_phases.keys().__contains__(tr.stats.station)) and (
+                    event_phases[tr.stats.station].keys().__contains__('P')):
+                if tr.stats.station == skip_station:
+                    continue
+                now_sta = tr.stats.station
+                now_net = tr.stats.network
+                receiver_type = tr.stats.channel[0:-1]
+                tn = now_sta + '.' + now_net + '_' + fn.split('.')[1] + '.' + fn.split('.')[2] + '_EV'
+                p_t = event_phases[now_sta]['P'] - 8 * 3600
+                start_time_str = (p_t - 10).strftime('%Y-%m-%d %H:%M:%S.%f')
+                tr_E = waves.select(now_net, now_sta, location=None, channel='*E')
+                tr_N = waves.select(now_net, now_sta, location=None, channel='*N')
+                tr_Z = waves.select(now_net, now_sta, location=None, channel='*Z')
+                st1 = Stream([tr_E[0], tr_N[0], tr_Z[0]])
+                st1.detrend('demean')
+                st1.filter('bandpass', freqmin=1.0, freqmax=45, corners=2, zerophase=True)
+                st1.taper(max_percentage=0.001, type='cosine', max_length=2)
+                if len([tr for tr in st1 if tr.stats.sampling_rate != 100.0]) != 0:
+                    try:
+                        st1.interpolate(100, method="linear")
+                    except Exception:
+                        st1 = _resampling(st1)
+                longest = st1[0].stats.npts
+                start_time = p_t - 10 + 0.01
+                end_time = p_t + 50
+
+                w = st1.trim(start_time, end_time, pad=True, fill_value=0)
+                if w[0].stats.npts < 6000:
+                    w = st1.trim(start_time + 0.01*(w[0].stats.npts-6000), end_time, pad=True, fill_value=0)
+                fl_counts += 1
+
+                chanL = [st1[0].stats.channel[-1], st1[1].stats.channel[-1], st1[2].stats.channel[-1]]
+                npz_data = np.zeros([6000, 3])
+                try:
+                    npz_data[:, 2] = w[chanL.index('Z')].data[:6000]
+                except ValueError:
+                    breakpoint()
+                try:
+                    npz_data[:, 0] = w[chanL.index('E')].data[:6000]
+                except Exception:
+                    npz_data[:, 0] = w[chanL.index('1')].data[:6000]
+                try:
+                    npz_data[:, 1] = w[chanL.index('N')].data[:6000]
+                except Exception:
+                    npz_data[:, 1] = w[chanL.index('2')].data[:6000]
+
+                tr_name = tn
+                HDF = h5py.File(join(output_dir, "traces.hdf5"), "r")
+                try:
+                    dsF = HDF.create_dataset('data/' + tr_name, npz_data.shape, data=npz_data, dtype=np.float32)
+                except Exception:
+                    continue
+                dsF.attrs["trace_name"] = tr_name
+                dsF.attrs["receiver_code"] = tn.split('.')[0]
+                dsF.attrs["network_code"] = tn.split('.')[1].split('_')[0]
+                dsF.attrs["receiver_latitude"] = '-999'
+                dsF.attrs["receiver_longitude"] = '-999'
+                dsF.attrs["receiver_elevation_m"] = '-999'
+                start_time_str = str(start_time)
+                start_time_str = start_time_str.replace('T', ' ')
+                start_time_str = start_time_str.replace('Z', '')
+                dsF.attrs['trace_start_time'] = start_time_str
+                dsF.attrs['trace_category'] = 'earthquake_local'
+                # dsF.attrs['trace_category'] = 'noise'
+                dsF.attrs['receiver_type'] = receiver_type
+                HDF.flush()
+                output_writer.writerow([str(tr_name), start_time_str, 'earthquake_local'])
+                # output_writer.writerow([str(tr_name), start_time_str, 'noise'])
+                csvfile.flush()
+                fln += 1
+    endt = time.process_time()
+    print('Consumed time :' + str(endt - startt))
+    HDF.close()
+    csvfile.close()
 
 
 def pharep2npy(input_dir, output_dir):
@@ -436,7 +561,7 @@ def sac_location_of_sta(input_dir, output_dir):
 
 
 def catalognpy_location_of_staeq(catalog_file, output_dir, sac_dir):
-    catalog = np.load(catalog_file,allow_pickle=True).item()
+    catalog = np.load(catalog_file, allow_pickle=True).item()
     sac_files = glob.glob(r'%s/*.GD.*.SAC' % sac_dir)
     sts = []
     lon = []
@@ -467,5 +592,22 @@ def catalognpy_location_of_staeq(catalog_file, output_dir, sac_dir):
         lat.append(stla)
         lon.append(stlo)
         eqs.append(ev)
-        eq_file.write('%6s' % ev + '%8.3f' % stla + '%8.3f' % stlo + '%7.1f' % depth+'%5.1f' % ML+'\n')
+        eq_file.write('%6s' % ev + '%8.3f' % stla + '%8.3f' % stlo + '%7.1f' % depth + '%5.1f' % ML + '\n')
     eq_file.close()
+
+
+def _resampling(st):
+    need_resampling = [tr for tr in st if tr.stats.sampling_rate != 100.0]
+    if len(need_resampling) > 0:
+        # print('resampling ...', flush=True)
+        for indx, tr in enumerate(need_resampling):
+            if tr.stats.delta < 0.01:
+                tr.filter('lowpass', freq=45, zerophase=True)
+            tr.resample(100)
+            tr.stats.sampling_rate = 100
+            tr.stats.delta = 0.01
+            tr.data.dtype = 'int32'
+            st.remove(tr)
+            st.append(tr)
+
+    return st

@@ -39,17 +39,17 @@ except Exception:
 
 
 def run_predictor():
-    predictor(input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1dayproblem.eqtinput',
+    predictor(input_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/days.eqtinput',
               input_model='./data/EqT_model.h5',
               output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/thiscanbedelete/',
               estimate_uncertainty=False,
-              output_probabilities=True,
+              output_probabilities=False,
               number_of_sampling=5,
               loss_weights=[0.02, 0.40, 0.58],
-              detection_threshold=0.002,
-              P_threshold=0.002,
-              S_threshold=0.002,
-              number_of_plots=1000,
+              detection_threshold=0.1,
+              P_threshold=0.1,
+              S_threshold=0.1,
+              number_of_plots=20,
               plot_mode='time',
               batch_size=500,
               number_of_cpus=16,
@@ -391,12 +391,12 @@ def prob_plot(prob_file, trace_file):
 
 if __name__ == '__main__':
     start = time.process_time()
-    # run_predictor()
+    run_predictor()
     # p=1001 s=1325
     # model_exhibit(event_id='XFJ.GD_201101012348.0001_EV')
     # run_predictor()
-    prob_plot(prob_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/'
-                        'thiscanbedelete/traces_outputs/prediction_probabilities.hdf5',
-              trace_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1dayproblem.eqtinput/traces.hdf5')
+    # prob_plot(prob_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/'
+    #                     'thiscanbedelete/traces_outputs/prediction_probabilities.hdf5',
+    #           trace_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1dayproblem.eqtinput/traces.hdf5')
     end = time.process_time()
     print(end - start)

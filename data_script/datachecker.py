@@ -43,8 +43,8 @@ def hdf5_validation(input_dir, output_dir, num_of_plots):
     data = h5f['data']
     num = 0
     for ev in data:
-        if ev.split('.')[0] != 'XFJ':
-            continue
+        # if ev.split('.')[0] != 'XFJ':
+        #     continue
         for i in range(3):
             plt.plot(data[ev][:, i] + i)
         plt.show()
@@ -91,11 +91,11 @@ def catalog_exhibition(catalog_file, snr_file=None):
 
 
 if __name__ == '__main__':
-    # hdf5_validation(input_dir=r'/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinput/tenyears_set',
-    #                 output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/__valipic__',
-    #                 num_of_plots=3000)
+    hdf5_validation(input_dir=r'/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/days.eqtinput',
+                    output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/__valipic__',
+                    num_of_plots=30)
     # hdf5_addnoise_exhibition(input_dir=r'/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinput/tenyears_set',
     #                          event_id='XFJ.GD_201112231459.0002_EV',
     #                          SNR=0)
-    catalog_exhibition(catalog_file=r'/media/jiangce/My Passport/work/SeismicData/XFJ1121/catalog.npy',
-                       snr_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/snr.npz')
+    # catalog_exhibition(catalog_file=r'/media/jiangce/My Passport/work/SeismicData/XFJ1121/catalog.npy',
+    #                    snr_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/snr.npz')

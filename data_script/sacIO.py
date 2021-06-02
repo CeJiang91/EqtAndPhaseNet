@@ -113,5 +113,14 @@ def seed2sac(fpath, out_dir=None):
         subprocess.call(['rdseed', '-df', fpath])
 
 
+def seed2sac_jopens(fpath, out_dir=None):
+    if out_dir:
+        # subprocess.call(['rdseed', '-dfq', fpath, out_dir])
+        subprocess.call(['/home/jiangce/software/jopens/utils/SeedReader.sh', '-f', fpath, '-o', '1', '-q', out_dir])
+    else:
+        # subprocess.call(['rdseed', '-df', fpath])
+        subprocess.call(['/home/jiangce/software/jopens/utils/SeedReader.sh', '-f', fpath, '-o', '1'])
+
+
 def mseed2sac(fpath):
     subprocess.call(['mseed2sac', '-O', fpath])

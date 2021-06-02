@@ -416,7 +416,7 @@ def xfj_phnet_hist(phnet_file, catalog):
 if __name__ == '__main__':
     start = time.process_time()
     xfj_errhist(phnet_file='../../../SeismicData/XFJ1121/phasenet_output/phnet.npy',
-                eqt_file='../../../SeismicData/XFJ1121/eqtoutput0.02/EQT.npy',
+                eqt_file='../../../SeismicData/XFJ1121/eqtoutputv2/EQT.npy',
                 catalog='../../../SeismicData/XFJ1121/catalog.npy',
                 snr_file='../../../SeismicData/XFJ1121/snr.npz')
     # xc_errhist(phnet_file='../../../SeismicData/phasenet_manul/xc/phnet.npy',

@@ -11,16 +11,16 @@ import time
 
 
 def run_predictor():
-    predictor(input_dir='../../SeismicData/XFJ1121/eqtinput/tenyears_set/',
+    predictor(input_dir='../../SeismicData/XFJ1121/eqtinputv2/tenyears_set/',
               input_model='./data/EqT_model.h5',
-              output_dir='../../SeismicData/XFJ1121/eqtoutputV2',
+              output_dir='../../SeismicData/XFJ1121/eqtoutputv2',
               estimate_uncertainty=False,
               output_probabilities=False,
               number_of_sampling=5,
               loss_weights=[0.02, 0.40, 0.58],
-              detection_threshold=0.02,
-              P_threshold=0.02,
-              S_threshold=0.02,
+              detection_threshold=0.1,
+              P_threshold=0.1,
+              S_threshold=0.1,
               number_of_plots=10,
               plot_mode='time',
               batch_size=500,

@@ -150,8 +150,8 @@ if __name__ == '__main__':
     # phnetcsv2npy(csv_file='/home/jc/work/XFJ1121/phasenet_output/picks.csv',
     #              waveform_csv='/home/jc/work/XFJ1121/phasenet_input/waveform.csv',
     #              npy_file='/home/jc/work/XFJ1121/phasenet_output/phnet.npy')
-    eqtcsv2npy(csv_file='../../../SeismicData/XFJ1121/eqtoutput0.02/traces_outputs/X_prediction_results.csv',
-               npy_file='../../../SeismicData/XFJ1121/eqtoutput0.02/EQT.npy')
+    eqtcsv2npy(csv_file='../../../SeismicData/XFJ1121/eqtoutputv2/traces_outputs/X_prediction_results.csv',
+               npy_file='../../../SeismicData/XFJ1121/eqtoutputv2/EQT.npy')
     # okeqpha2npy(input_file='../data/xc/original_pick_data/okeqpha.dat',
     #             catalogfile='../data/xc/catalog.npy',
     #             npy_file='../data/xc/phnet.npy')
