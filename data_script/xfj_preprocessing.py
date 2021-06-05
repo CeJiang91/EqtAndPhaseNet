@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 import time
-from dataIO import fullcatalog_reader, phases2npy, seed2h5pyv2, seed2h5pyv3
+from dataIO import fullcatalog_reader, phases2npy, seed2h5pyv3, seed2h5py_continue
 from sacIO import seed2sac_jopens
 import glob
 import os
 import shutil
 import numpy as np
-from obspy import read
+from obspy import UTCDateTime, read, Stream
 import csv
 
 
@@ -28,12 +28,10 @@ def run_xfj_catalog():
     np.save('../../XFJ1121//catalog.npy', catalog)
 
 
-def run_xfj_eqtdata():
+def run_xfj_eqtdata(seed_dir, output_dir):
     # seed2h5pyv2(seed_dir, output_dir `)
-    # seed2h5pyv3(seed_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/1day.seed',
-    #             output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/days.eqtinput')
-    seed2h5pyv3(seed_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/xfj.seed',
-                output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinputv2')
+    # seed2h5pyv3(seed_dir, output_dir)
+    seed2h5py_continue(seed_dir, output_dir)
 
 
 def run_xfj_seed2sac(input_dir, output_dir):
@@ -78,6 +76,8 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
         dirs.sort()
         dic = {'data': {}, 'cn': {}}
         for f in sorted(files):
+            if trn>50:
+                break
             tr = read(os.path.join(root, f))[0]
             if tr.stats.npts < 6000:
                 continue
@@ -118,14 +118,58 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
     csv_file.close()
 
 
+def run_continue_sac2mseed(input_dir, output_dir):
+    if os.path.isdir(output_dir):
+        print('============================================================================')
+    print(f' *** {output_dir} already exists!')
+    inp = input(" --> Type (Yes or y) to create a new empty directory! otherwise it will overwrite!   ")
+    if inp.lower() == "yes" or inp.lower() == "y":
+        shutil.rmtree(output_dir)
+    os.makedirs(os.path.join(output_dir, 'mseed_xfj'))
+    trn = 0
+    csv_file = open(os.path.join(output_dir, "fname.csv"), 'w', newline='')
+    output_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    output_writer.writerow(['fname', 'E', 'N','Z'])
+    for root, dirs, files in os.walk(input_dir, topdown=True):
+        dirs.sort()
+        if len(files) != 0:
+            st = Stream()
+            datastr= root.split('/')[-1].split('.')[0]
+            utc_start = UTCDateTime(datastr) - 8*3600
+            if utc_start < UTCDateTime('2021/05/21/') - 8*3600:
+                continue
+        for f in sorted(files):
+            tr = read(os.path.join(root, f))
+            st.append(tr[0])
+        if len(files) != 0:
+            nets = []
+            stas = []
+            st.merge()
+            st.trim(utc_start, utc_start+3600, pad=True, fill_value=0)
+            for i in range(len(st)):
+                net = st[i].stats.network
+                sta = st[i].stats.station
+                receiver_type = st[i].stats.channel[:-1]
+                if net in nets and sta in stas:
+                    continue
+                else:
+                    nets.append(net)
+                    stas.append(sta)
+                    fname = datastr+f'.{net}.{sta}.mseed'
+                    now_st = st.select(network=net, station=sta)
+                    now_st.write(os.path.join(output_dir, 'mseed_xfj', fname), format='MSEED')
+                    output_writer.writerow([fname, receiver_type+'E', receiver_type+'N',receiver_type+'Z'])
+                    csv_file.flush()
+            # break
+
+
 if __name__ == '__main__':
     start = time.process_time()
     # run_xfj_catalog()
-    # run_xfj_eqtdata()
-    # run_xfj_seed2sac(input_dir='../../../work/SeismicData/XFJ1121/xfj.seed',
-    #                  output_dir='../../../work/SeismicData/XFJ1121/xfj.sac')
-    run_xfj_sac2phasenetdata(input_dir='../../../work/SeismicData/XFJ1121/xfj.sac',
-                             output_dir='/home/jiangce/work/SeismicData/XFJ1121/phasenet_input',
-                             catalogfile='../../../work/SeismicData/XFJ1121/catalog.npy')
+    # run_xfj_eqtdata(seed_dir='/home/jc/disk1/Yangbi',
+    #                 output_dir='/home/jc/disk1/Yangbi.eqt_input')
+    # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')
+    run_continue_sac2mseed(input_dir='/home/jc/disk1/Yangbi_sac',
+                           output_dir='/home/jc/disk1/Yangbi.phasenet_input')
     end = time.process_time()
     print(end - start)
