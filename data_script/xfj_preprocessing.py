@@ -9,6 +9,7 @@ import shutil
 import numpy as np
 from obspy import UTCDateTime, read, Stream
 import csv
+import pandas as pd
 
 
 def run_xfj_catalog():
@@ -76,7 +77,7 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
         dirs.sort()
         dic = {'data': {}, 'cn': {}}
         for f in sorted(files):
-            if trn>50:
+            if trn > 50:
                 break
             tr = read(os.path.join(root, f))[0]
             if tr.stats.npts < 6000:
@@ -118,7 +119,7 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
     csv_file.close()
 
 
-def run_continue_sac2mseed(input_dir, output_dir):
+def phn_continue_sac2mseed(input_dir, output_dir):
     if os.path.isdir(output_dir):
         print('============================================================================')
     print(f' *** {output_dir} already exists!')
@@ -129,14 +130,14 @@ def run_continue_sac2mseed(input_dir, output_dir):
     trn = 0
     csv_file = open(os.path.join(output_dir, "fname.csv"), 'w', newline='')
     output_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    output_writer.writerow(['fname', 'E', 'N','Z'])
+    output_writer.writerow(['fname', 'E', 'N', 'Z'])
     for root, dirs, files in os.walk(input_dir, topdown=True):
         dirs.sort()
         if len(files) != 0:
             st = Stream()
-            datastr= root.split('/')[-1].split('.')[0]
-            utc_start = UTCDateTime(datastr) - 8*3600
-            if utc_start < UTCDateTime('2021/05/21/') - 8*3600:
+            datastr = root.split('/')[-1].split('.')[0]
+            utc_start = UTCDateTime(datastr) - 8 * 3600
+            if utc_start < UTCDateTime('2021/05/21/') - 8 * 3600:
                 continue
         for f in sorted(files):
             tr = read(os.path.join(root, f))
@@ -145,7 +146,7 @@ def run_continue_sac2mseed(input_dir, output_dir):
             nets = []
             stas = []
             st.merge()
-            st.trim(utc_start, utc_start+3600, pad=True, fill_value=0)
+            st.trim(utc_start, utc_start + 3600, pad=True, fill_value=0)
             for i in range(len(st)):
                 net = st[i].stats.network
                 sta = st[i].stats.station
@@ -155,12 +156,78 @@ def run_continue_sac2mseed(input_dir, output_dir):
                 else:
                     nets.append(net)
                     stas.append(sta)
-                    fname = datastr+f'.{net}.{sta}.mseed'
+                    fname = datastr + f'.{net}.{sta}.mseed'
                     now_st = st.select(network=net, station=sta)
                     now_st.write(os.path.join(output_dir, 'mseed_xfj', fname), format='MSEED')
-                    output_writer.writerow([fname, receiver_type+'E', receiver_type+'N',receiver_type+'Z'])
+                    output_writer.writerow([fname, receiver_type + 'E', receiver_type + 'N', receiver_type + 'Z'])
                     csv_file.flush()
             # break
+
+
+def eqt_continue_sac2mseed(input_dir, output_dir):
+    if os.path.isdir(output_dir):
+        print('============================================================================')
+    print(f' *** {output_dir} already exists!')
+    inp = input(" --> Type (Yes or y) to create a new empty directory! otherwise it will overwrite!   ")
+    if inp.lower() == "yes" or inp.lower() == "y":
+        shutil.rmtree(output_dir)
+    os.makedirs(os.path.join(output_dir, 'mseed_xfj'))
+    trn = 0
+    csv_file = open(os.path.join(output_dir, "fname.csv"), 'w', newline='')
+    output_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    output_writer.writerow(['fname', 'E', 'N', 'Z'])
+    for root, dirs, files in os.walk(input_dir, topdown=True):
+        dirs.sort()
+        if len(files) != 0:
+            st = Stream()
+            datastr = root.split('/')[-1].split('.')[0]
+            utc_start = UTCDateTime(datastr) - 8 * 3600
+            if utc_start < UTCDateTime('2021/05/21/') - 8 * 3600:
+                continue
+        for f in sorted(files):
+            tr = read(os.path.join(root, f))
+            st.append(tr[0])
+        if len(files) != 0:
+            nets = []
+            stas = []
+            st.merge()
+            st.trim(utc_start, utc_start + 3600, pad=True, fill_value=0)
+            for i in range(len(st)):
+                net = st[i].stats.network
+                sta = st[i].stats.station
+                receiver_type = st[i].stats.channel[:-1]
+                if net in nets and sta in stas:
+                    continue
+                else:
+                    nets.append(net)
+                    stas.append(sta)
+                    fname = datastr + f'.{net}.{sta}.mseed'
+                    now_st = st.select(network=net, station=sta)
+                    now_st.write(os.path.join(output_dir, 'mseed_xfj', fname), format='MSEED')
+                    output_writer.writerow([fname, receiver_type + 'E', receiver_type + 'N', receiver_type + 'Z'])
+                    csv_file.flush()
+            # break
+
+
+def phn_mseed_pick(input_dir, output_dir, station_file):
+    files = glob.glob(r'%s/*.mseed' % input_dir)
+    csv_file = open(os.path.join(output_dir, '..',"pick_mseed.csv"), 'w', newline='')
+    output_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    output_writer.writerow(['fname', 'E', 'N', 'Z'])
+    netstalist = pd.read_csv(station_file, delimiter=',',header=None)
+    sta_list = list(netstalist.iloc[:, 1])
+    net_list = list(netstalist.iloc[:, 0])
+    for f in files:
+        net = f.split('/')[-1].split('.')[1]
+        sta = f.split('/')[-1].split('.')[2]
+        utc =UTCDateTime(f.split('/')[-1].split('.')[0])
+        fname = f.split('/')[-1]
+        if (net in net_list and sta in sta_list) and utc < UTCDateTime('20210524'):
+        # if (net in net_list and sta in sta_list) and UTCDateTime('20210524')<utc<UTCDateTime('20210528'):
+            os.system(f'cp {f} {output_dir}')
+            output_writer.writerow([fname, 'BHE', 'BHN', 'BHZ'])
+            csv_file.flush()
+    csv_file.close()
 
 
 if __name__ == '__main__':
@@ -169,7 +236,12 @@ if __name__ == '__main__':
     # run_xfj_eqtdata(seed_dir='/home/jc/disk1/Yangbi',
     #                 output_dir='/home/jc/disk1/Yangbi.eqt_input')
     # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')
-    run_continue_sac2mseed(input_dir='/home/jc/disk1/Yangbi_sac',
+    # continue_sac2mseed(input_dir='/home/jc/disk1/Yangbi_sac',
+    #                    output_dir='/home/jc/disk1/Yangbi.phasenet_input')
+    eqt_continue_sac2mseed(input_dir='/home/jc/disk1/Yangbi_sac',
                            output_dir='/home/jc/disk1/Yangbi.phasenet_input')
+    # phn_mseed_pick(input_dir='/home/jiangce/work/SeismicData/Yangbi.phasenet_input/mseed',
+    #                output_dir='/home/jiangce/work/SeismicData/Yangbi.phasenet_input/pick_mseed',
+    #                station_file='/home/jiangce/work/SeismicData/Yangbi.phasenet_input/sta_list.csv')
     end = time.process_time()
     print(end - start)

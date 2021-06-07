@@ -11,9 +11,9 @@ if __name__ == '__main__':
     # args.data_dir = '../../../work/SeismicData/XFJ1121/1daytest/days.phnetinput/waveform_xfj'
     # args.data_list = '../../../work/SeismicData/XFJ1121/1daytest/days.phnetinput/waveform.csv'
     # args.input_length = 6000
-    args.data_dir = '/home/jc/disk1/Yangbi.phasenet_input/mseed_xfj'
-    args.data_list = '/home/jc/disk1/Yangbi.phasenet_input/fname.csv'
-    args.output_dir = '/home/jc/disk1/Yangbi.phasenet_output'
+    args.data_dir = '/home/jiangce/work/SeismicData/Yangbi.phasenet_input/pick_mseed'
+    args.data_list = '/home/jiangce/work/SeismicData/Yangbi.phasenet_input/pick_mseed.csv'
+    args.output_dir = '/home/jiangce/work/SeismicData/Yangbi.phasenet_output'
     args.mode = 'pred'
     args.model_dir = 'model/190703-214543'
     args.input_mseed = True
