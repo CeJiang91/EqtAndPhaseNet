@@ -391,9 +391,9 @@ def prob_plot(prob_file, trace_file):
 
 if __name__ == '__main__':
     start = time.process_time()
-    run_predictor()
+    # run_predictor()
     # p=1001 s=1325
-    # model_exhibit(event_id='XFJ.GD_201101012348.0001_EV')
+    model_exhibit(event_id='XFJ.GD_201101012348.0001_EV')
     # run_predictor()
     # prob_plot(prob_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/'
     #                     'thiscanbedelete/traces_outputs/prediction_probabilities.hdf5',

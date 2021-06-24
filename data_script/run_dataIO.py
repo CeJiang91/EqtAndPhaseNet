@@ -52,6 +52,6 @@ if __name__ == '__main__':
     start = time.process_time()
     # run_location_of_staeq()
     # run_pharep2npy()
-    np.load('F:\work\SeismicData\phasenet_manul\xc\catalog.npy', allow_pickle=True).item()
+    # np.load('F:\work\SeismicData\phasenet_manul\xc\catalog.npy', allow_pickle=True).item()
     end = time.process_time()
     print(end - start)

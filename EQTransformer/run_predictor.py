@@ -31,14 +31,25 @@ def run_predictor():
 
 
 def run_mseed_predictor():
-    mseed_predictor(input_dir='/home/jiangce/work/SeismicData/Yangbi.phasenet_input/pick_mseed',
+    # mseed_predictor(input_dir='downloads_mseeds',
+    #                 input_model='data/EqT_model.h5',
+    #                 stations_json='json/station_list.json',
+    #                 output_dir='eqt_output',
+    #                 detection_threshold=0.2,
+    #                 P_threshold=0.1,
+    #                 S_threshold=0.1,
+    #                 number_of_plots=0,
+    #                 plot_mode='time_frequency',
+    #                 batch_size=500,
+    #                 overlap=0.3)
+    mseed_predictor(input_dir='/media/jiangce/Elements SE/Yangbi.eqt_input/unfinished',
                     input_model='data/EqT_model.h5',
-                    # stations_json='station_list.json',
-                    output_dir='/home/jiangce/work/SeismicData/Yangbi.eqt_output',
+                    stations_json='/media/jiangce/Elements SE/Yangbi.eqt_input//station_list.json',
+                    output_dir='/home/jiangce/work/SeismicData/Yangbi.YUL',
                     detection_threshold=0.2,
                     P_threshold=0.1,
                     S_threshold=0.1,
-                    number_of_plots=10,
+                    number_of_plots=0,
                     plot_mode='time_frequency',
                     batch_size=500,
                     overlap=0.3)

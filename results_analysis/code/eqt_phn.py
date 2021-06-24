@@ -298,12 +298,12 @@ def eqtphn_recall(phnet_file, eqt_file, phnet_csv, eqt_csv, catalog):
         the_file.write('the number of EQTransformer input: ' + str(len(csv_ph)) + '\n')
         the_file.write('P recall of EQTransformer: ' + str(PP / len(csv_ph)) + '\n')
         the_file.write('P precision of EQTransformer: ' + str(PP / (PP + FP)) + '\n')
-        the_file.write('P false picking num of PhaseNet: ' + str(FP) + '\n')
-        the_file.write('P positive picking num of PhaseNet: ' + str(PP) + '\n')
+        the_file.write('P false picking num of EQTransformer: ' + str(FP) + '\n')
+        the_file.write('P positive picking num of EQTransformer: ' + str(PP) + '\n')
         the_file.write('S recall of EQTransformer: ' + str(PS / (PS + MissS)) + '\n')
         the_file.write('S precision of EQTransformer: ' + str(PS / (PS + FS)) + '\n')
-        the_file.write('S false picking num of PhaseNet: ' + str(FS) + '\n')
-        the_file.write('S positive picking num of PhaseNet: ' + str(PS) + '\n')
+        the_file.write('S false picking num of EQTransformer: ' + str(FS) + '\n')
+        the_file.write('S positive picking num of EQTransformer: ' + str(PS) + '\n')
     # breakpoint()
 
 
@@ -318,9 +318,9 @@ if __name__ == '__main__':
     #                                            '/phnet.npy',
     #                                 eqt_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtoutput/EQT.npy',
     #                                 )
-    eqtphn_recall(phnet_file='../../../SeismicData/XFJ1121/phasenet_output/phnet.npy',
+    eqtphn_recall(phnet_file='../../../SeismicData/XFJ1121/phasenet_output_2020/phnet.npy',
                   eqt_file='../../../SeismicData/XFJ1121/eqtoutput0.02/EQT.npy',
-                  phnet_csv='../../../SeismicData/XFJ1121/phasenet_input/waveform.csv',
+                  phnet_csv='../../../SeismicData/XFJ1121/phasenet_output_2020//waveform.csv',
                   eqt_csv='../../../SeismicData/XFJ1121/eqtinput/tenyears_set/traces.csv',
                   catalog='../../../SeismicData/XFJ1121/catalog.npy')
     end = time.process_time()

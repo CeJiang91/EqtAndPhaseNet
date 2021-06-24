@@ -4,7 +4,9 @@
 import csv
 import numpy as np
 from obspy import UTCDateTime
-
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
 
 def eqtcsv2npy(csv_file, npy_file):
     f = open(csv_file, 'r')
@@ -147,11 +149,12 @@ def okeqpha2npy(input_file, catalogfile, npy_file):
 
 
 if __name__ == '__main__':
-    # phnetcsv2npy(csv_file='/home/jc/work/XFJ1121/phasenet_output/picks.csv',
-    #              waveform_csv='/home/jc/work/XFJ1121/phasenet_input/waveform.csv',
-    #              npy_file='/home/jc/work/XFJ1121/phasenet_output/phnet.npy')
-    eqtcsv2npy(csv_file='../../../SeismicData/XFJ1121/eqtoutputv2/traces_outputs/X_prediction_results.csv',
-               npy_file='../../../SeismicData/XFJ1121/eqtoutputv2/EQT.npy')
+    phnetcsv2npy(csv_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/phasenet_output_2020/picks.csv',
+                 waveform_csv='/home/jiangce/work/SeismicData/XFJ1121/phasenet_input/waveform.csv',
+                 npy_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/phasenet_output_2020/phnet.npy')
+    # eqtcsv2npy(csv_file='../../../SeismicData/XFJ1121/eqtoutputv2/traces_outputs/X_prediction_results.csv',
+    #            npy_file='../../../SeismicData/XFJ1121/eqtoutputv2/EQT.npy')
     # okeqpha2npy(input_file='../data/xc/original_pick_data/okeqpha.dat',
     #             catalogfile='../data/xc/catalog.npy',
     #             npy_file='../data/xc/phnet.npy')
+
