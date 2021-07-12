@@ -8,6 +8,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
+
 def eqtcsv2npy(csv_file, npy_file):
     f = open(csv_file, 'r')
     csv_file = csv.reader(f)

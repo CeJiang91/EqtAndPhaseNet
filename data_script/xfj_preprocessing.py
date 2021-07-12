@@ -31,8 +31,8 @@ def run_xfj_catalog():
 
 def run_xfj_eqtdata(seed_dir, output_dir):
     # seed2h5pyv2(seed_dir, output_dir `)
-    # seed2h5pyv3(seed_dir, output_dir)
-    seed2h5py_continue(seed_dir, output_dir)
+    seed2h5pyv3(seed_dir, output_dir)
+    # seed2h5py_continue(seed_dir, output_dir)
 
 
 def run_xfj_seed2sac(input_dir, output_dir):

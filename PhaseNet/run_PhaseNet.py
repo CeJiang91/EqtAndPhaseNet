@@ -10,10 +10,14 @@ if __name__ == '__main__':
     # args.plot_figure=True
     # args.data_dir = '../../../work/SeismicData/XFJ1121/1daytest/days.phnetinput/waveform_xfj'
     # args.data_list = '../../../work/SeismicData/XFJ1121/1daytest/days.phnetinput/waveform.csv'
-    # args.input_length = 6000
-    args.data_dir = '/media/jiangce/work_disk/project/SeismicData/Yangbi/XG.CHT_PhaseNet_input/mseed'
-    args.data_list = '/media/jiangce/work_disk/project/SeismicData/Yangbi/XG.CHT_PhaseNet_input/fname.csv'
-    args.output_dir = '/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/XG.CHT_PhaseNet_output'
+    args.input_length = 3000
+    args.data_dir = 'demo/mseed'
+    args.data_list = 'demo/fname.csv'
+    args.data_dir = '/media/jiangce/work_disk/project/SeismicData/Maduo/QH.DAR_PhaseNet/QH.DAR_PhaseNet_input/mseed'
+    args.data_list = '/media/jiangce/work_disk/project/SeismicData/Maduo/QH.DAR_PhaseNet/QH.DAR_PhaseNet_input' \
+                     '/fname.csv'
+    args.output_dir = '/media/jiangce/work_disk/project/SeismicData/Maduo/QH.DAR_PhaseNet/QH.DAR_PhaseNet_output'
+    # args.output_dir = '/media/jiangce/work_disk/project/SeismicData/test_can_be_delete'
     args.mode = 'pred'
     args.model_dir = 'model/190703-214543'
     args.input_mseed = True

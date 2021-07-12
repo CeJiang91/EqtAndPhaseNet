@@ -58,13 +58,13 @@ def run_predictor():
 
 
 # XFJ.GD_201101012348.0001_EV(no result) XFJ.GD_201112231459.0002_EV(good example)
-def model_exhibit(event_id='XFJ.GD_201101020425.0001_EV',
-                  out_image_dir='./eqt_layer_image_test',
+def model_exhibit(event_id,
+                  out_image_dir='./eqt_layer_image',
                   input_dir='/media/jiangce/work_disk/project/SeismicData/XFJ1121/eqtinputv2/tenyears_set',
-                  input_model='./data/EqT_model.h5',
-                  output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/thiscanbedelete/',
+                  input_model='../../EQTransformer/data/EqT_model.h5',
+                  output_dir='/media/jiangce/work_disk/project/SeismicData/XFJ1121/thiscanbedelete/',
                   output_probabilities=False,
-                  detection_threshold=0.3,
+                  detection_threshold=0.1,
                   P_threshold=0.1,
                   S_threshold=0.1,
                   number_of_plots=10,
@@ -221,6 +221,16 @@ def model_exhibit(event_id='XFJ.GD_201101020425.0001_EV',
     # ----------------------
     depth_layers_file = open('depth_layers.txt', 'w')
     depth_layers_file.write('depth  node\n')
+    #--------------
+    plt.plot(sa[0, :, 0], 'k')
+    plt.savefig('input.png')
+    plt.close()
+    yy = model(sa)
+    for i in range(len(yy)):
+        plt.plot(yy[i][0,:,0]+i,'k')
+        plt.savefig(os.path.join('./eqt_layer_image', 'final_prob.png'))
+    plt.close()
+    #--------------
     for depth in depth_keys:
         nodes = model._nodes_by_depth[depth]
         layers = []
@@ -275,7 +285,7 @@ def model_exhibit(event_id='XFJ.GD_201101020425.0001_EV',
                     for kk in range(0, y[0].shape[1]):
                         normal_y = (y[0][:, kk] - min(y[0][:, kk])) / (max(y[0][:, kk]) - min(y[0][:, kk]))
                         # plt.plot(y[0][:, kk] + kk)
-                        plt.plot(normal_y + kk)
+                        plt.plot(normal_y + kk,'k')
                     plt.savefig(os.path.join('./eqt_layer_image', '%003d_' % depth +
                                              x.name.split(':')[0].replace('/','.')+'.png'))
                     plt.close()
@@ -308,7 +318,7 @@ def model_exhibit(event_id='XFJ.GD_201101020425.0001_EV',
     plt.plot(sa[0, :, 0])
     plt.plot(sa[0, :, 1] + 2)
     plt.plot(sa[0, :, 2] + 4)
-    plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[0].output_tensors))][0][0][200:-200])+200, ls='--', c='black')
+    plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[0].output_tensors))][0][0][200:-200])+200, ls='--', c='b')
     plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[1].output_tensors))][0][0][200:-200])+200, ls='--', c='red')
     plt.savefig('./eqt_layer_image/input.png')
     plt.close()
@@ -393,7 +403,7 @@ if __name__ == '__main__':
     start = time.process_time()
     # run_predictor()
     # p=1001 s=1325
-    model_exhibit(event_id='XFJ.GD_201101012348.0001_EV')
+    model_exhibit(event_id='XFJ.GD_201112231459.0002_EV')
     # run_predictor()
     # prob_plot(prob_file='/media/jiangce/My Passport/work/SeismicData/XFJ1121/'
     #                     'thiscanbedelete/traces_outputs/prediction_probabilities.hdf5',

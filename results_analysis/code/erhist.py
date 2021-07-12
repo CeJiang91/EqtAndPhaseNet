@@ -618,7 +618,7 @@ def mseed_eqterr(input_dir, output_file, catalog_file):
     np.save(output_file, eqterr)
 
 
-def err_hist(eqt_file, phn_file):
+def err_hist(eqt_file, phn_file,output_dir=None):
     phnerr = np.load(phn_file, allow_pickle=True).item()
     eqterr = np.load(eqt_file, allow_pickle=True).item()
     num_bins = 51
@@ -636,7 +636,10 @@ def err_hist(eqt_file, phn_file):
     plt.xlabel('Tai - Tmanual')
     plt.ylabel('Frequency')
     plt.title(r'P Picks')
-    plt.savefig('P_Pick.png')
+    if output_dir:
+        plt.savefig(os.path.join(output_dir,'P_Pick.png'))
+    else:
+        plt.savefig('P_Pick.png')
     plt.close()
     # S pick image
     num_bins = 51
@@ -653,7 +656,10 @@ def err_hist(eqt_file, phn_file):
     plt.xlabel('Tai - Tmanual')
     plt.ylabel('Frequency')
     plt.title(r'S Picks')
-    plt.savefig('S_Pick.png')
+    if output_dir:
+        plt.savefig(os.path.join(output_dir,'S_Pick.png'))
+    else:
+        plt.savefig('S_Pick.png')
     plt.close()
 
 

@@ -506,6 +506,8 @@ def pred_fn(args, data_reader, figure_dir=None, result_dir=None, log_dir=None):
         for i in range(len(fname_batch)):
           if len(picks_batch[i][0][0])==0 and len(picks_batch[i][1][0])==0:
               continue
+          # if int(fname_batch[i].decode().split('_')[-1])>360000:
+          #     breakpoint()
           row = "{},[{}],[{}],[{}],[{}]".format(fname_batch[i].decode(), " ".join(map(str,picks_batch[i][0][0])), " ".join(map(str,picks_batch[i][0][1])),
                                         " ".join(map(str,picks_batch[i][1][0])), " ".join(map(str,picks_batch[i][1][1])))
           fclog.write(row+"\n")

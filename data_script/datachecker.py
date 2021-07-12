@@ -91,9 +91,9 @@ def catalog_exhibition(catalog_file, snr_file=None):
 
 
 if __name__ == '__main__':
-    hdf5_validation(input_dir=r'/media/jiangce/My Passport/work/SeismicData/XFJ1121/1daytest/days.eqtinput',
-                    output_dir='/media/jiangce/My Passport/work/SeismicData/XFJ1121/__valipic__',
-                    num_of_plots=30)
+    hdf5_validation(input_dir='/media/jiangce/work_disk/project/SeismicData/XFJ1121/eqtinputv2/tenyears_set',
+                    output_dir='/media/jiangce/work_disk/project/SeismicData/XFJ1121/__valipic__',
+                    num_of_plots=300)
     # hdf5_addnoise_exhibition(input_dir=r'/media/jiangce/My Passport/work/SeismicData/XFJ1121/eqtinput/tenyears_set',
     #                          event_id='XFJ.GD_201112231459.0002_EV',
     #                          SNR=0)
