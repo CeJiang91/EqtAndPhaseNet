@@ -25,9 +25,9 @@ if __name__ == '__main__':
     # eqt_continue_sac2mseed(input_dir='/media/jiangce/Elements SE/Maduo/Maduo_sac',
     #                        output_dir='/media/jiangce/Elements SE/Maduo/Maduo.eqt_input',
     #                        station_filter_file='/media/jiangce/Elements SE/Maduo/sta_filter_list.csv')
-    mseed_phasenet_MT(input_file='/media/jiangce/work_disk/project/SeismicData/Maduo/'
-                                 'QH.DAR_PhaseNet/QH.DAR_PhaseNet_output/picks.csv',
-                      output_image='/media/jiangce/work_disk/project/SeismicData/Maduo/QH.DAR_PhaseNet/mt_dar.png')
+    # mseed_phasenet_MT(input_file='/media/jiangce/work_disk/project/SeismicData/Maduo/'
+    #                              'QH.DAR_PhaseNet/QH.DAR_PhaseNet_output/picks.csv',
+    #                   output_image='/media/jiangce/work_disk/project/SeismicData/Maduo/QH.DAR_PhaseNet/mt_dar.png')
     # run_mseed_predictor()
     # gmt_sta_location(sac_dir='/media/jiangce/Elements SE/Maduo/Maduo_sac/2021050100.QH.SAC',
     #                  stfile='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/gmt/st_maduo.dat',
@@ -36,13 +36,13 @@ if __name__ == '__main__':
     #                 output_file='/media/jiangce/Elements SE/Maduo/man_catalog.npy')
     # gmt_eq_location(catalog_file='/media/jiangce/Elements SE/Maduo/man_catalog.npy',
     #                 eqfile='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/gmt/eq_maduo.dat')
-    # mseed_phnerr(input_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result/Maduo'
-    #                         '.phasenet_output_30s_0.3/picks.csv',
-    #              output_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result/phnerr_30s_0.3.npy',
-    #              catalog_file='/media/jiangce/Elements SE/Maduo/man_catalog.npy')
+    mseed_phnerr(input_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result/Maduo'
+                            '.phasenet_output_30s_0.3/picks.csv',
+                 output_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result/phnerr_30s_0.3.npy',
+                 catalog_file='/media/jiangce/Elements SE/Maduo/man_catalog.npy')
     # mseed_eqterr(input_dir='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result/Maduo.eqt_output',
     #              output_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result//eqterr.npy',
     #              catalog_file='/media/jiangce/Elements SE/Maduo/man_catalog.npy')
     # err_hist(eqt_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result//eqterr.npy',
-    #          phn_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result//phnerr.npy',
-    #          output_dir='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result')
+    #          phn_file='/media/jiangce/work_disk/project/SeismicData/Maduo/Maduo_result//phnerr_30s_0.3.npy',
+    #          output_dir='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/p2_pick_error')
