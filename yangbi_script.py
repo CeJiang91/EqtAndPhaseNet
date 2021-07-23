@@ -8,6 +8,11 @@ import csv
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter, MaxNLocator
+import matplotlib as mpl
+
+
+# mpl.rcParams['pdf.fonttype']=42
+# mpl.rcParams['text.usetex']=True
 
 
 def to_percent(y, position):
@@ -236,7 +241,7 @@ def phn_mseed_pick(input_dir, output_dir, station_file):
 def mseed_phnerr(input_file, output_file, catalog_file):
     catalog = np.load(catalog_file, allow_pickle=True).item()
     df = pd.read_csv(input_file)
-    csv_file = './yn_man_phase.csv'
+    csv_file = './qh_man_phase.csv'
     if os.path.isfile(csv_file):
         df_cata = pd.read_csv(csv_file)
     else:
@@ -267,17 +272,17 @@ def mseed_phnerr(input_file, output_file, catalog_file):
         sta_list.append(df['fname'][i].split('.')[1].strip() + '/' + df['fname'][i].split('.')[2].strip())
     sta_list = list(set(sta_list))
     for sta in sta_list:
-        time_range = UTCDateTime('2021-05-21')
+        time_range = UTCDateTime('2021-05-22')
         for i in range(7):
             label_df = label_df.append(df_cata.loc[(df_cata.station == sta) &
                                                    (df_cata.itp.str.contains(time_range.__str__()[0:10]))])
             time_range += 3600 * 24
             label_df.index = range(len(label_df))
-    itp_list =[]
-    its_list =[]
+    itp_list = []
+    its_list = []
     for i in range(df.shape[0]):
-        if 0.01 * int(df['fname'][i].split('_')[1])>=3600:
-            utc_phn = UTCDateTime(df['fname'][i].split('.')[0]) + 0.01 * int(df['fname'][i].split('_')[1])-3600-15
+        if 0.01 * int(df['fname'][i].split('_')[1]) >= 3600:
+            utc_phn = UTCDateTime(df['fname'][i].split('.')[0]) + 0.01 * int(df['fname'][i].split('_')[1]) - 3600 - 15
         else:
             utc_phn = UTCDateTime(df['fname'][i].split('.')[0]) + 0.01 * int(df['fname'][i].split('_')[1])
         sta = df['fname'][i].split('.')[1].strip() + '/' + df['fname'][i].split('.')[2].strip()
@@ -298,28 +303,34 @@ def mseed_phnerr(input_file, output_file, catalog_file):
         breakrange = False
         continuerange = False
         for j in range(selected.shape[0]):
-            if selected.itp[j] != '-999' and selected.itp[j] not in itp_list:
+            if selected.itp[j] != '-999':
                 for pt in utc_itp:
                     phnet_erral = pt - UTCDateTime(selected['itp'][j])
                     if abs(phnet_erral) < 0.5:
-                        phnerr['P'].append(phnet_erral)
-                        TP += 1
-                        FP -= 1
-                        itp_list.append(selected['itp'][j])
+                        if selected.itp[j] not in itp_list:
+                            phnerr['P'].append(phnet_erral)
+                            TP += 1
+                            FP -= 1
+                            itp_list.append(selected['itp'][j])
+                        else:
+                            FP -= 1
                     if phnet_erral < -5:
                         breakrange = True
                         break
                     if phnet_erral > 5:
                         continuerange = True
                         continue
-            if selected['its'][j] != '-999' and selected.its[j] not in its_list:
+            if selected['its'][j] != '-999' :
                 for st in utc_its:
                     phnet_erral = st - UTCDateTime(selected['its'][j])
                     if abs(phnet_erral) < 0.5:
-                        phnerr['S'].append(phnet_erral)
-                        TP += 1
-                        FP -= 1
-                        its_list.append(selected['its'][j])
+                        if selected.its[j] not in its_list:
+                            phnerr['S'].append(phnet_erral)
+                            TP += 1
+                            FP -= 1
+                            its_list.append(selected['its'][j])
+                        else:
+                            FP -=1
                     if phnet_erral < -5:
                         breakrange = True
                         break
@@ -439,12 +450,14 @@ def mseed_phasenet_MT(input_file, output_image):
     for i in range(df.shape[0]):
         date = df['fname'][i].split('.')[0][:-2]
         itp = list(map(eval, df['itp'][i].strip('[]').split()))
+        its = list(map(eval, df['its'][i].strip('[]').split()))
         if date not in df_count.date.to_list():
             date_list.append(UTCDateTime(date).datetime)
             counts = len(itp)
+            counts = counts + len(itp)
             df_count = df_count.append([{'date': date, 'counts': counts}])
         else:
-            df_count.counts[df_count.date == date] += len(itp)
+            df_count.counts[df_count.date == date] += (len(itp) + len(its))
     plt.vlines(date_list, 0, df_count.counts.to_numpy(dtype=int), colors='black')
     plt.xticks(rotation=70)
     plt.xlabel('Day')
@@ -461,40 +474,42 @@ def err_hist(eqt_file, phn_file, output_dir=None):
     plt.hist(phnerr['P'], num_bins, weights=[1. / len(phnerr['P'])] * len(phnerr['P']), edgecolor='red', linewidth=1,
              facecolor='red', range=range, alpha=0.3, label='PhaseNet')
     plt.hist(eqterr['P'], num_bins, weights=[1. / len(eqterr['P'])] * len(eqterr['P']), edgecolor='blue', linewidth=1,
-             facecolor='blue', range=range, alpha=0.3, label='EQT')
+             facecolor='blue', range=range, alpha=0.3, label='EQTransformer')
     plt.xlim(range)
     formatter = FuncFormatter(to_percent)
     ax = plt.gca()
     ax.yaxis.set_major_formatter(formatter)
     plt.legend(loc="best")
     plt.grid()
-    plt.xlabel('Tai - Tmanual')
-    plt.ylabel('Frequency')
-    plt.title(r'P Picks')
+    plt.xlabel('${T_{AI}}$ - ${T_{Catalog}}$', fontdict={'family': 'Nimbus Roman',
+                                                         'weight': 'normal', 'size': 15})
+    plt.ylabel('Percentage',fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
+    plt.title(r'P Picks', fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
     if output_dir:
-        plt.savefig(os.path.join(output_dir, 'P_Pick.png'))
+        plt.savefig(os.path.join(output_dir, 'P_Pick.pdf'))
     else:
-        plt.savefig('P_Pick.png')
+        plt.savefig('P_Pick.pdf')
     plt.close()
     # S pick image
     num_bins = 51
     plt.hist(phnerr['S'], num_bins, weights=[1. / len(phnerr['S'])] * len(phnerr['S']), edgecolor='red', linewidth=1,
              facecolor='red', range=range, alpha=0.3, label='PhaseNet')
     plt.hist(eqterr['S'], num_bins, weights=[1. / len(eqterr['S'])] * len(eqterr['S']), edgecolor='blue', linewidth=1,
-             facecolor='blue', range=range, alpha=0.3, label='EQT')
+             facecolor='blue', range=range, alpha=0.3, label='EQTransformer')
     plt.xlim(range)
     formatter = FuncFormatter(to_percent)
     ax = plt.gca()
     ax.yaxis.set_major_formatter(formatter)
     plt.legend(loc="best")
     plt.grid()
-    plt.xlabel('Tai - Tmanual')
-    plt.ylabel('Frequency')
-    plt.title(r'S Picks')
+    plt.xlabel('${T_{AI}}$ - ${T_{Catalog}}$', fontdict={'family': 'Nimbus Roman',
+                                                         'weight': 'normal', 'size': 15})
+    plt.ylabel('Percentage',fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
+    plt.title(r'S Picks', fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
     if output_dir:
-        plt.savefig(os.path.join(output_dir, 'S_Pick.png'))
+        plt.savefig(os.path.join(output_dir, 'S_Pick.pdf'))
     else:
-        plt.savefig('S_Pick.png')
+        plt.savefig('S_Pick.pdf')
     plt.close()
 
 
@@ -527,17 +542,16 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
     sta = 'CHT'
     net = 'XG'
     length = 3000
-    df_cata=df_cata.loc[(df_cata.station == f'{net}/{sta}')]
+    df_cata = df_cata.loc[(df_cata.station == f'{net}/{sta}')]
     df_cata.index = range(len(df_cata))
     df_phn = df_phn.loc[(df_phn.fname.str.contains(f'{net}.{sta}'))]
     df_phn.index = range(len(df_phn))
-    df_eqt = pd.read_csv(os.path.join(eqt_output,f'{sta}_outputs','X_prediction_results.csv'))
+    df_eqt = pd.read_csv(os.path.join(eqt_output, f'{sta}_outputs', 'X_prediction_results.csv'))
     df_eqt.index = range(len(df_eqt))
-    fig = plt.figure(figsize=(4,8),dpi=100)
-    k=0
+    fignum = 0
     # 76 1629 1646
-    # for i in [76,1629,1646]:
-    for i in range(len(df_cata)):
+    for i in [76, 1629, 1646]:
+        # for i in range(len(df_cata)):
         phn_get = False
         eqt_get = False
         if df_cata.itp[i] == '-999':
@@ -548,7 +562,7 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
         else:
             its = 0
         itp_eqt_format = itp.strftime('%Y-%m-%d %H:%M')
-        df_eqt=df_eqt.fillna('-12345')
+        df_eqt = df_eqt.fillna('-12345')
         eqt_match = df_eqt.loc[df_eqt.p_arrival_time.str.contains(itp_eqt_format)]
         eqt_match.index = range(len(eqt_match))
         for j in range(len(eqt_match)):
@@ -558,9 +572,10 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
                 eqt_get = True
                 eqt_pt = utc_itp
         itp_phn_format = itp.strftime('%Y%m%d%H')
-        start_sample1 = int(100*(itp.minute * 60 + itp.second + itp.microsecond * 0.000001) // length)*length
-        start_sample2 = int(100*(itp.minute * 60 + itp.second + itp.microsecond * 0.000001+3600+length/200) // length) * length
-        start_sample1=str(start_sample1)
+        start_sample1 = int(100 * (itp.minute * 60 + itp.second + itp.microsecond * 0.000001) // length) * length
+        start_sample2 = int(
+            100 * (itp.minute * 60 + itp.second + itp.microsecond * 0.000001 + 3600 + length / 200) // length) * length
+        start_sample1 = str(start_sample1)
         start_sample2 = str(start_sample2)
         df_phn1 = df_phn.loc[df_phn.fname.str.contains(f'{itp_phn_format}.{net}.{sta}.mseed_{start_sample1}')]
         df_phn2 = df_phn.loc[df_phn.fname.str.contains(f'{itp_phn_format}.{net}.{sta}.mseed_{start_sample2}')]
@@ -573,7 +588,7 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
             for pt in utc_itp:
                 phnet_erral = pt - itp
                 if abs(phnet_erral) < 0.5:
-                    phn_get =True
+                    phn_get = True
                     phn_pt = pt
         for j in range(len(df_phn2)):
             utc_phn2 = UTCDateTime(df_phn2['fname'][j].split('.')[0]) + 0.01 * int(
@@ -583,33 +598,37 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
             for pt in utc_itp:
                 phnet_erral = pt - itp
                 if abs(phnet_erral) < 0.5:
-                    phn_get =True
+                    phn_get = True
                     phn_pt = pt
-        if not eqt_get and phn_get:
+        if eqt_get and not phn_get:
             phasenet_input_dir = '/media/jiangce/Elements SE/Yangbi/Yangbi.phasenet_input/mseed'
-            st = read(os.path.join(phasenet_input_dir,f'{itp_phn_format}.{net}.{sta}.mseed'))
-            start_time = itp-8*3600-5
-            end_time = itp-8*3600+10
-            itp_0 = itp-8*3600
-            st=st.trim(start_time, end_time, pad=True, fill_value=0)
+            st = read(os.path.join(phasenet_input_dir, f'{itp_phn_format}.{net}.{sta}.mseed'))
+            start_time = itp - 8 * 3600 - 5
+            end_time = itp - 8 * 3600 + 10
+            itp_0 = itp - 8 * 3600
+            st = st.trim(start_time, end_time, pad=True, fill_value=0)
             st.detrend()
             st.normalize()
-            k += 1
-            if k>3:
+            fig = plt.figure(figsize=(8, 4), dpi=100)
+            fignum += 1
+            if fignum > 3:
                 break
-            ax = fig.add_subplot(3,1,k)
-            ax.plot(st[-1].data,'k')
-            ax.vlines(100*(itp_0-start_time),-1,1,'r')
-            if its>0:
-                its_0=its-8*3600
-                ax.vlines(100*(its_0-start_time), -1, 1, 'b')
-            ax.yaxis.set_visible(False)
-            ax.set_xlim(0, 1200)
-            ax.xaxis.set_major_locator(MaxNLocator(3))
+            for k in range(3):
+                ax = fig.add_subplot(3, 1, k + 1)
+                ax.plot(st[k].times(), st[k].data, 'k')
+                ax.vlines((itp_0 - start_time), -1, 1, 'b', linewidth=2.0)
+                if its > 0:
+                    its_0 = its - 8 * 3600
+                    ax.vlines((its_0 - start_time), -1, 1, 'r', linewidth=2.0, linestyles='dashed')
+                ax.yaxis.set_visible(False)
+                ax.set_xlim(0, 12)
+                ax.xaxis.set_major_locator(MaxNLocator(3))
+                if k == 2:
+                    ax.set_xlabel('t/s')
+            fig.tight_layout()
             print(i)
             # breakpoint()
-    fig.tight_layout()
-    fig.savefig('./results_analysis/p3_eqt_and_phn_example/eqt0_phn1.png')
+            fig.savefig(f'eqt1_phn0{i}.pdf')
 
 
 if __name__ == '__main__':
@@ -620,24 +639,21 @@ if __name__ == '__main__':
     #                 eqfile='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/gmt/eq_yangbi.dat')
     # phn_continue_sac2mseed(input_dir='/media/jiangce/Elements SE/Yangbi/Yangbi_sac',
     #                        output_dir='/media/jiangce/work_disk/project/SeismicData/Yangbi/XG.XBT_PhaseNet/XG.XBT_PhaseNet_input')
-    mseed_phasenet_MT(input_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/'
-                                 'XG.XBT_PhaseNet/XG.XBT_PhaseNet_output/picks.csv',
-                      output_image='/media/jiangce/work_disk/project/SeismicData/Yangbi/XG.XBT_PhaseNet/mt_cht.png')
-    # mseed_phnerr(input_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/Yangbi.phasenet_output_all/picks.csv',
-    #              output_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/phnerr.npy',
-    #              catalog_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/man_catalog.npy')
+    # mseed_phasenet_MT(input_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/'
+    #                              'XG.XBT_PhaseNet/XG.XBT_PhaseNet_output/picks.csv',
+    #                   output_image='/media/jiangce/work_disk/project/SeismicData/Yangbi/XG.XBT_PhaseNet/mt_xbt.png')
+    mseed_phnerr(input_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/Yangbi.phasenet_output_all/picks.csv',
+                 output_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/phnerr.npy',
+                 catalog_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/man_catalog.npy')
     # mseed_eqterr(input_dir='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/Yangbi.eqt_output',
     #              output_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/eqterr.npy',
     #              catalog_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/man_catalog.npy')
-    # err_hist(eqt_file='/home/jiangce/work/SeismicData/Yangbi_result/eqterr.npy',
-    #          phn_file='/home/jiangce/work/SeismicData/Yangbi_result/phnerr.npy')
+    # err_hist(eqt_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/eqterr.npy',
+    #          phn_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/phnerr.npy',
+    #          output_dir='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/p2_pick_error')
     # find_cases_mseed_output(eqt_output='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.eqt_output',
     #                         phn_picks='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.phasenet_output_all/'
     #                                   'picks.csv',
     #                         catalog_file='/home/jiangce/work/SeismicData/Yangbi_result/man_catalog.npy')
-    # find_cases_mseed_output(eqt_output='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.eqt_output',
-    #                         phn_picks='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.phasenet_output_all/'
-    #                                   'picks.csv',
-    #                         catalog_file='/media/jiangce/work_disk/project/SeismicData/Maduo/man_catalog.npy')
     # man2catalog_npy(input_file='/media/jiangce/work_disk/project/SeismicData/Maduo/QH_phase_2021-2021.txt',
     #                 output_file='/media/jiangce/work_disk/project/SeismicData/Maduo/man_catalog.npy')

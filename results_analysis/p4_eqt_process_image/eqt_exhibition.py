@@ -222,13 +222,21 @@ def model_exhibit(event_id,
     depth_layers_file = open('depth_layers.txt', 'w')
     depth_layers_file.write('depth  node\n')
     #--------------
-    plt.plot(sa[0, :, 0], 'k')
+    width = 8
+    high = 5
+    plt.figure(figsize=(width,high),dpi=100)
+    for i in range(sa.shape[-1]):
+        temp = (sa[0,:,i]-min(sa[0,:,i]))/(max(sa[0,:,i])-min(sa[0,:,i]))
+        plt.plot(temp+i, 'k')
+    plt.yticks([])
     plt.savefig('input.png')
     plt.close()
     yy = model(sa)
+    plt.figure(figsize=(width, high), dpi=100)
     for i in range(len(yy)):
         plt.plot(yy[i][0,:,0]+i,'k')
-        plt.savefig(os.path.join('./eqt_layer_image', 'final_prob.png'))
+        plt.yticks([])
+    plt.savefig(os.path.join('./eqt_layer_image', 'final_prob.png'))
     plt.close()
     #--------------
     for depth in depth_keys:
@@ -282,10 +290,12 @@ def model_exhibit(event_id,
                         nest.flatten(node.output_tensors), nest.flatten(output_tensors)):
                     x_id = str(id(x))
                     tensor_dict[x_id] = [y] * model._tensor_usage_count[x_id]
+                    plt.figure(figsize=(width, high), dpi=100)
                     for kk in range(0, y[0].shape[1]):
                         normal_y = (y[0][:, kk] - min(y[0][:, kk])) / (max(y[0][:, kk]) - min(y[0][:, kk]))
                         # plt.plot(y[0][:, kk] + kk)
                         plt.plot(normal_y + kk,'k')
+                    plt.yticks([])
                     plt.savefig(os.path.join('./eqt_layer_image', '%003d_' % depth +
                                              x.name.split(':')[0].replace('/','.')+'.png'))
                     plt.close()
@@ -315,11 +325,13 @@ def model_exhibit(event_id,
         # plt.close()
     # ---------------------------------------------
     depth_layers_file.close()
+    plt.figure(figsize=(width, high), dpi=100)
     plt.plot(sa[0, :, 0])
     plt.plot(sa[0, :, 1] + 2)
     plt.plot(sa[0, :, 2] + 4)
     plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[0].output_tensors))][0][0][200:-200])+200, ls='--', c='b')
     plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[1].output_tensors))][0][0][200:-200])+200, ls='--', c='red')
+    plt.yticks([])
     plt.savefig('./eqt_layer_image/input.png')
     plt.close()
 

@@ -45,7 +45,7 @@ def run_mseed_predictor():
     mseed_predictor(input_dir='/media/jiangce/Elements SE/Yangbi.eqt_input/unfinished',
                     input_model='data/EqT_model.h5',
                     stations_json='/media/jiangce/Elements SE/Yangbi.eqt_input//station_list.json',
-                    output_dir='/home/jiangce/work/SeismicData/Yangbi.YUL',
+                    output_dir='/home/jiangce/work/SeismicData/this_can_be_delete',
                     detection_threshold=0.2,
                     P_threshold=0.1,
                     S_threshold=0.1,
