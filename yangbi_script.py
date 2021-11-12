@@ -1,18 +1,17 @@
 # This script is used to process the Yangbi 521 earthquake
 import glob
+import multiprocessing
 import os
 import shutil
+from functools import partial
+
 import numpy as np
 from obspy import UTCDateTime, read, Stream
 import csv
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter, MaxNLocator
-import matplotlib as mpl
-
-
-# mpl.rcParams['pdf.fonttype']=42
-# mpl.rcParams['text.usetex']=True
+import matplotlib.dates as mdates
 
 
 def to_percent(y, position):
@@ -238,10 +237,10 @@ def phn_mseed_pick(input_dir, output_dir, station_file):
     csv_file.close()
 
 
-def mseed_phnerr(input_file, output_file, catalog_file):
+def mseed_phnerr(input_file, output_dir, catalog_file):
     catalog = np.load(catalog_file, allow_pickle=True).item()
     df = pd.read_csv(input_file)
-    csv_file = './qh_man_phase.csv'
+    csv_file = './yn_man_phase.csv'
     if os.path.isfile(csv_file):
         df_cata = pd.read_csv(csv_file)
     else:
@@ -262,6 +261,11 @@ def mseed_phnerr(input_file, output_file, catalog_file):
     #     phnerr = np.load(output_file, allow_pickle=True).item()
     #     breakpoint()
     # else:
+    # df2 = pd.read_csv('/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output0.7/picks_rm_overlap.csv')
+    # sta_list2 = []
+    # for i in range(df2.shape[0]):
+    #     sta_list2.append(df2['fname'][i].split('.')[1].strip() + '/' + df2['fname'][i].split('.')[2].strip())
+    # sta_list2 = list(set(sta_list2))
     phnerr = {'P': [], 'S': []}
     sta_list = []
     TP = 0
@@ -271,15 +275,18 @@ def mseed_phnerr(input_file, output_file, catalog_file):
     for i in range(df.shape[0]):
         sta_list.append(df['fname'][i].split('.')[1].strip() + '/' + df['fname'][i].split('.')[2].strip())
     sta_list = list(set(sta_list))
+    #--------
+    # sta_list.remove('YN/LAP')
     for sta in sta_list:
-        time_range = UTCDateTime('2021-05-22')
-        for i in range(7):
+        time_range = UTCDateTime('2021-05-24')
+        for i in range(5):
             label_df = label_df.append(df_cata.loc[(df_cata.station == sta) &
                                                    (df_cata.itp.str.contains(time_range.__str__()[0:10]))])
             time_range += 3600 * 24
             label_df.index = range(len(label_df))
     itp_list = []
     its_list = []
+    df_cata=label_df
     for i in range(df.shape[0]):
         if 0.01 * int(df['fname'][i].split('_')[1]) >= 3600:
             utc_phn = UTCDateTime(df['fname'][i].split('.')[0]) + 0.01 * int(df['fname'][i].split('_')[1]) - 3600 - 15
@@ -303,34 +310,28 @@ def mseed_phnerr(input_file, output_file, catalog_file):
         breakrange = False
         continuerange = False
         for j in range(selected.shape[0]):
-            if selected.itp[j] != '-999':
+            if selected.itp[j] != '-999' and selected.itp[j] not in itp_list:
                 for pt in utc_itp:
                     phnet_erral = pt - UTCDateTime(selected['itp'][j])
                     if abs(phnet_erral) < 0.5:
-                        if selected.itp[j] not in itp_list:
-                            phnerr['P'].append(phnet_erral)
-                            TP += 1
-                            FP -= 1
-                            itp_list.append(selected['itp'][j])
-                        else:
-                            FP -= 1
+                        phnerr['P'].append(phnet_erral)
+                        TP += 1
+                        FP -= 1
+                        itp_list.append(selected['itp'][j])
                     if phnet_erral < -5:
                         breakrange = True
                         break
                     if phnet_erral > 5:
                         continuerange = True
                         continue
-            if selected['its'][j] != '-999' :
+            if selected['its'][j] != '-999' and selected.its[j] not in its_list:
                 for st in utc_its:
                     phnet_erral = st - UTCDateTime(selected['its'][j])
                     if abs(phnet_erral) < 0.5:
-                        if selected.its[j] not in its_list:
-                            phnerr['S'].append(phnet_erral)
-                            TP += 1
-                            FP -= 1
-                            its_list.append(selected['its'][j])
-                        else:
-                            FP -=1
+                        phnerr['S'].append(phnet_erral)
+                        TP += 1
+                        FP -= 1
+                        its_list.append(selected['its'][j])
                     if phnet_erral < -5:
                         breakrange = True
                         break
@@ -346,15 +347,23 @@ def mseed_phnerr(input_file, output_file, catalog_file):
     label_P_num = label_df.loc[label_df.itp != '-999'].shape[0]
     label_S_num = label_df.loc[label_df.its != '-999'].shape[0]
     true_label_num = label_S_num + label_P_num
-    with open('phasenet_report.txt', 'a') as the_file:
+    recall = TP / (true_label_num)
+    precision = TP / (TP + FP)
+    f1 = 2 * (precision * recall) / (recall + precision)
+    with open(os.path.join(output_dir, 'phasenet_report.txt'), 'a') as the_file:
         the_file.write('================== PhaseNet Info ==============================' + '\n')
         the_file.write('the number of PhaseNet input: ' + str(true_label_num) + '\n')
-        the_file.write('P recall of PhaseNet: ' + str(TP / (true_label_num)) + '\n')
-        the_file.write('P precision of PhaseNet: ' + str(TP / (TP + FP)) + '\n')
-    np.save(output_file, phnerr)
+        the_file.write('recall of PhaseNet: ' + str(recall) + '\n')
+        the_file.write('precision of PhaseNet: ' + str(precision) + '\n')
+        the_file.write('f1 of PhaseNet: ' + str(f1) + '\n')
+        the_file.write('TP of PhaseNet: ' + str(TP) + '\n')
+        the_file.write('FP of PhaseNet: ' + str(FP) + '\n')
+        the_file.write('P phase num of PhaseNet: ' + str(label_P_num) + '\n')
+        the_file.write('S phase num of PhaseNet: ' + str(label_S_num) + '\n')
+    np.save(os.path.join(output_dir, 'phnerr.npy'), phnerr)
 
 
-def mseed_eqterr(input_dir, output_file, catalog_file):
+def mseed_eqterr(input_dir, output_dir, catalog_file):
     files = glob.glob(r'%s/*/*.csv' % input_dir)
     csv_file = './yn_man_phase.csv'
     if os.path.isfile(csv_file):
@@ -374,6 +383,15 @@ def mseed_eqterr(input_dir, output_file, catalog_file):
                     its = -999
                 df_cata = df_cata.append([{'station': sta, 'itp': itp, 'its': its}])
         df_cata.to_csv(csv_file)
+    df_filted=pd.DataFrame()
+    time_range = UTCDateTime('2021-05-21')
+    temp_time = time_range
+    days=7
+    for i in range(days):
+        df_filted = df_filted.append(df_cata.loc[df_cata.itp.str.contains(temp_time.__str__()[0:10])])
+        temp_time += 3600 * 24
+        df_filted.index = range(len(df_filted))
+    df_cata=df_filted
     eqterr = {'P': [], 'S': []}
     TP = 0
     FP = 0
@@ -381,16 +399,21 @@ def mseed_eqterr(input_dir, output_file, catalog_file):
     label_df = pd.DataFrame()
     for f in files:
         df = pd.read_csv(f)
+        if df.empty:
+            continue
         sta = df.network[0].strip() + '/' + df.station[0].strip()
-        time_range = UTCDateTime('2021-05-21')
-        for i in range(7):
+        time_range2 = time_range
+        for i in range(days):
             label_df = label_df.append(df_cata.loc[(df_cata.station == sta) &
-                                                   (df_cata.itp.str.contains(time_range.__str__()[0:10]))])
-            time_range += 3600 * 24
+                                                   (df_cata.itp.str.contains(time_range2.__str__()[0:10]))])
+            time_range2 += 3600 * 24
             label_df.index = range(len(label_df))
+        # df_cata = label_df
         for i in range(df.shape[0]):
             matched_p = False
             matched_s = False
+            if UTCDateTime(df.event_start_time[i])<time_range:
+                continue
             if isinstance(df.p_arrival_time[i], str):
                 utc_itp = UTCDateTime(df.p_arrival_time[i])
                 exist_p = True
@@ -406,7 +429,7 @@ def mseed_eqterr(input_dir, output_file, catalog_file):
             selected = df_cata.loc[(df_cata.station == sta) & (df_cata.itp.str.contains(utc_eqt.__str__()[0:13]))]
             selected.index = range(len(selected))
             for j in range(selected.shape[0]):
-                if selected['itp'][j] != '-999':
+                if (selected['itp'][j] != '-999') and exist_p:
                     eqt_erral = utc_itp - UTCDateTime(selected['itp'][j]) + 8 * 3600
                     if abs(eqt_erral) < 0.5:
                         eqterr['P'].append(eqt_erral)
@@ -416,7 +439,7 @@ def mseed_eqterr(input_dir, output_file, catalog_file):
                         break
                     if eqt_erral > 30:
                         continue
-                if selected['its'][j] != '-999':
+                if (selected['its'][j] != '-999') and exist_s:
                     eqt_erral = utc_its - UTCDateTime(selected['its'][j]) + 8 * 3600
                     if abs(eqt_erral) < 0.5:
                         eqterr['S'].append(eqt_erral)
@@ -432,34 +455,50 @@ def mseed_eqterr(input_dir, output_file, catalog_file):
                 FP += 1
     # breakpoint()
     label_P_num = label_df.loc[label_df.itp != '-999'].shape[0]
-    label_S_num = label_df.loc[label_df.its != '-999'].shape[0]
-    true_label_num = label_S_num + label_P_num
-    with open('eqt_report.txt', 'a') as the_file:
+    # label_S_num = label_df.loc[label_df.its != '-999'].shape[0]
+    # true_label_num = label_S_num + label_P_num
+    #--------------please delete
+    true_label_num= 25368
+    label_S_num = true_label_num - label_P_num
+    #_----------
+    recall = TP / (true_label_num)
+    precision = TP / (TP + FP)
+    f1 = 2 * (precision * recall) / (recall + precision)
+    with open(os.path.join(output_dir, 'eqt_report.txt'), 'a') as the_file:
         the_file.write('================== EQTransformer Info ==============================' + '\n')
         the_file.write('the number of EQTransformer input: ' + str(true_label_num) + '\n')
         the_file.write('P recall of EQTransformer: ' + str(TP / (true_label_num)) + '\n')
         the_file.write('P precision of EQTransformer: ' + str(TP / (TP + FP)) + '\n')
-    np.save(output_file, eqterr)
+        the_file.write('f1 of PhaseNet: ' + str(f1) + '\n')
+        the_file.write('TP of PhaseNet: ' + str(TP) + '\n')
+        the_file.write('FP of PhaseNet: ' + str(FP) + '\n')
+        the_file.write('P phase num of PhaseNet: ' + str(label_P_num) + '\n')
+        the_file.write('s phase num of PhaseNet: ' + str(label_S_num) + '\n')
+    np.save(os.path.join(output_dir, 'eqterr.npy'), eqterr)
 
 
 def mseed_phasenet_MT(input_file, output_image):
     df = pd.read_csv(input_file)
     df_count = pd.DataFrame(columns=['date', 'counts'], dtype=str)
     date_list = []
-    # for i in range(10000):
+    # for i in range(100):
     for i in range(df.shape[0]):
         date = df['fname'][i].split('.')[0][:-2]
         itp = list(map(eval, df['itp'][i].strip('[]').split()))
-        its = list(map(eval, df['its'][i].strip('[]').split()))
         if date not in df_count.date.to_list():
             date_list.append(UTCDateTime(date).datetime)
             counts = len(itp)
-            counts = counts + len(itp)
             df_count = df_count.append([{'date': date, 'counts': counts}])
         else:
-            df_count.counts[df_count.date == date] += (len(itp) + len(its))
+            df_count.counts[df_count.date == date] += len(itp)
+    plt.figure(figsize=(8, 4), dpi=100)
+    enddate=UTCDateTime('20210527')
+    date_list = np.array(date_list)
+    date_list=date_list[date_list<enddate]
+    df_count=df_count[df_count.date<enddate]
     plt.vlines(date_list, 0, df_count.counts.to_numpy(dtype=int), colors='black')
-    plt.xticks(rotation=70)
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+    plt.xticks(rotation=30)
     plt.xlabel('Day')
     plt.ylabel('Counts')
     plt.savefig(output_image)
@@ -469,7 +508,13 @@ def mseed_phasenet_MT(input_file, output_image):
 def err_hist(eqt_file, phn_file, output_dir=None):
     phnerr = np.load(phn_file, allow_pickle=True).item()
     eqterr = np.load(eqt_file, allow_pickle=True).item()
-    num_bins = 51
+    # ------there is a mistake in mseed_phnerr(). so i corrected here
+    phnerr['P'] = np.array(phnerr['P']) - 0.01
+    phnerr['S'] = np.array(phnerr['S']) - 0.01
+    eqterr['P'] = np.array(eqterr['P']) - 0.01
+    eqterr['S'] = np.array(eqterr['S']) - 0.01
+    # ----------------
+    num_bins = 41
     range = [-0.5, 0.5]
     plt.hist(phnerr['P'], num_bins, weights=[1. / len(phnerr['P'])] * len(phnerr['P']), edgecolor='red', linewidth=1,
              facecolor='red', range=range, alpha=0.3, label='PhaseNet')
@@ -483,7 +528,7 @@ def err_hist(eqt_file, phn_file, output_dir=None):
     plt.grid()
     plt.xlabel('${T_{AI}}$ - ${T_{Catalog}}$', fontdict={'family': 'Nimbus Roman',
                                                          'weight': 'normal', 'size': 15})
-    plt.ylabel('Percentage',fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
+    plt.ylabel('Percentage', fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
     plt.title(r'P Picks', fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
     if output_dir:
         plt.savefig(os.path.join(output_dir, 'P_Pick.pdf'))
@@ -491,7 +536,7 @@ def err_hist(eqt_file, phn_file, output_dir=None):
         plt.savefig('P_Pick.pdf')
     plt.close()
     # S pick image
-    num_bins = 51
+    num_bins = 41
     plt.hist(phnerr['S'], num_bins, weights=[1. / len(phnerr['S'])] * len(phnerr['S']), edgecolor='red', linewidth=1,
              facecolor='red', range=range, alpha=0.3, label='PhaseNet')
     plt.hist(eqterr['S'], num_bins, weights=[1. / len(eqterr['S'])] * len(eqterr['S']), edgecolor='blue', linewidth=1,
@@ -504,13 +549,26 @@ def err_hist(eqt_file, phn_file, output_dir=None):
     plt.grid()
     plt.xlabel('${T_{AI}}$ - ${T_{Catalog}}$', fontdict={'family': 'Nimbus Roman',
                                                          'weight': 'normal', 'size': 15})
-    plt.ylabel('Percentage',fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
+    plt.ylabel('Percentage', fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
     plt.title(r'S Picks', fontdict={'family': 'Nimbus Roman', 'weight': 'normal', 'size': 15})
     if output_dir:
         plt.savefig(os.path.join(output_dir, 'S_Pick.pdf'))
     else:
         plt.savefig('S_Pick.pdf')
     plt.close()
+    with open(os.path.join(output_dir, 'error_report.txt'), 'a') as the_file:
+        the_file.write(r'PEQT: std' + str(np.std(eqterr['P']))[0:5] + ' var: ' + str(np.var(eqterr['P']))[0:5]
+                       + ' mean/abs:' + str(np.mean(np.abs(eqterr['P'])))[0:5] + ' mean:' +
+                       str(np.mean(eqterr['P']))[0:5] + '\n')
+        the_file.write(r'PPhaseNet: std' + str(np.std(phnerr['P']))[0:5] + ' var: ' + str(np.var(phnerr['P']))[0:5]
+                       + ' mean/abs:' + str(np.mean(np.abs(phnerr['P'])))[0:5] + ' mean:' +
+                       str(np.mean(phnerr['P']))[0:5] + '\n')
+        the_file.write(r'SEQT: std' + str(np.std(eqterr['S']))[0:5] + ' var: ' + str(np.var(eqterr['S']))[0:5]
+                       + ' mean/abs:' + str(np.mean(np.abs(eqterr['S'])))[0:5] + ' mean:' +
+                       str(np.mean(eqterr['S']))[0:5] + '\n')
+        the_file.write(r'SPhaseNet: std' + str(np.std(phnerr['S']))[0:5] + ' var: ' + str(np.var(phnerr['S']))[0:5]
+                       + ' mean/abs:' + str(np.mean(np.abs(phnerr['S'])))[0:5] + ' mean:' +
+                       str(np.mean(phnerr['S']))[0:5] + '\n')
 
 
 def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
@@ -548,10 +606,11 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
     df_phn.index = range(len(df_phn))
     df_eqt = pd.read_csv(os.path.join(eqt_output, f'{sta}_outputs', 'X_prediction_results.csv'))
     df_eqt.index = range(len(df_eqt))
-    fignum = 0
+    fig = plt.figure(figsize=(4, 8), dpi=100)
+    k = 0
     # 76 1629 1646
-    for i in [76, 1629, 1646]:
-        # for i in range(len(df_cata)):
+    # for i in [76,1629,1646]:
+    for i in range(len(df_cata)):
         phn_get = False
         eqt_get = False
         if df_cata.itp[i] == '-999':
@@ -600,7 +659,7 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
                 if abs(phnet_erral) < 0.5:
                     phn_get = True
                     phn_pt = pt
-        if eqt_get and not phn_get:
+        if not eqt_get and phn_get:
             phasenet_input_dir = '/media/jiangce/Elements SE/Yangbi/Yangbi.phasenet_input/mseed'
             st = read(os.path.join(phasenet_input_dir, f'{itp_phn_format}.{net}.{sta}.mseed'))
             start_time = itp - 8 * 3600 - 5
@@ -609,29 +668,169 @@ def find_cases_mseed_output(eqt_output, phn_picks, catalog_file):
             st = st.trim(start_time, end_time, pad=True, fill_value=0)
             st.detrend()
             st.normalize()
-            fig = plt.figure(figsize=(8, 4), dpi=100)
-            fignum += 1
-            if fignum > 3:
+            k += 1
+            if k > 3:
                 break
-            for k in range(3):
-                ax = fig.add_subplot(3, 1, k + 1)
-                ax.plot(st[k].times(), st[k].data, 'k')
-                ax.vlines((itp_0 - start_time), -1, 1, 'b', linewidth=2.0)
-                if its > 0:
-                    its_0 = its - 8 * 3600
-                    ax.vlines((its_0 - start_time), -1, 1, 'r', linewidth=2.0, linestyles='dashed')
-                ax.yaxis.set_visible(False)
-                ax.set_xlim(0, 12)
-                ax.xaxis.set_major_locator(MaxNLocator(3))
-                if k == 2:
-                    ax.set_xlabel('t/s')
-            fig.tight_layout()
+            ax = fig.add_subplot(3, 1, k)
+            ax.plot(st[-1].data, 'k')
+            ax.vlines(100 * (itp_0 - start_time), -1, 1, 'r')
+            if its > 0:
+                its_0 = its - 8 * 3600
+                ax.vlines(100 * (its_0 - start_time), -1, 1, 'b')
+            ax.yaxis.set_visible(False)
+            ax.set_xlim(0, 1200)
+            ax.xaxis.set_major_locator(MaxNLocator(3))
             print(i)
             # breakpoint()
-            fig.savefig(f'eqt1_phn0{i}.pdf')
+    fig.tight_layout()
+    fig.savefig('./results_analysis/p3_eqt_and_phn_example/eqt0_phn1.png')
+
+
+def rm_phasenet_overlap(input_csv, output_csv):
+    df = pd.read_csv(input_csv)
+    p = multiprocessing.Pool(120)
+    df_rm_overlap = p.map(partial(rm_overlap_subfunction, df=df), df.index)
+    df_rm_overlap2 = pd.concat(df_rm_overlap)
+    df_rm_overlap2.to_csv(output_csv, index=False)
+
+
+def rm_overlap_subfunction(index, df):
+    cut_start1 = int(df['fname'][index].split('_')[1])
+    """
+    consider overlap is 50% and input length is 60 minutes, we remove the repeated 
+    results with parameters about 3600 and 15
+    """
+    if 0.01 * cut_start1 >= 3600:
+        return pd.DataFrame([], columns=df.columns)
+    utc_phn1 = UTCDateTime(df['fname'][index].split('.')[0]) + 0.01 * cut_start1
+    utc_phn2 = UTCDateTime(df['fname'][index].split('.')[0]) + 0.01 * cut_start1 - 15
+    cut_start2 = str(cut_start1 + 360000)
+    fname2 = df.fname[index].split('_')[0] + '_' + str(cut_start2)
+    sta = df['fname'][index].split('.')[1].strip() + '/' + df['fname'][index].split('.')[2].strip()
+    itp1 = list(map(eval, df['itp'][index].strip('[]').split()))
+    its1 = list(map(eval, df['its'][index].strip('[]').split()))
+    df2 = df.loc[df.fname == fname2]
+    if len(df2) == 0:
+        return pd.DataFrame(
+            [df.iloc[index]],
+            columns=df.columns)
+    itp2 = list(map(eval, df2.itp.iloc[0].strip('[]').split()))
+    its2 = list(map(eval, df2.its.iloc[0].strip('[]').split()))
+    if len(itp1) > 0:
+        utc_itp1 = [utc_phn1 + pt * 0.01 for pt in itp1]
+    else:
+        utc_itp1 = []
+    if len(its1) > 0:
+        utc_its1 = [utc_phn1 + st * 0.01 for st in its1]
+    else:
+        utc_its1 = []
+    if len(itp2) > 0:
+        utc_itp2 = [utc_phn2 + pt * 0.01 for pt in itp2]
+    else:
+        utc_itp2 = []
+    if len(its2) > 0:
+        utc_its2 = [utc_phn2 + st * 0.01 for st in its2]
+    else:
+        utc_its2 = []
+    if len(itp1) > 0 and len(itp2) > 0:
+        for tp2 in utc_itp2:
+            add_on = True
+            for tp1 in utc_itp1:
+                if abs(tp1 - tp2) < 1:
+                    add_on = False
+                    # tp2 add
+            if add_on:
+                itp1.append(int(100 * (tp2 - utc_phn1)))
+    elif len(itp1) == 0 and len(itp2) > 0:
+        for tp2 in utc_itp2:
+            itp1.append(int(100 * (tp2 - utc_phn1)))
+    if len(its1) > 0 and len(its2) > 0:
+        for ts2 in utc_its2:
+            add_on = True
+            for ts1 in utc_its1:
+                if abs(ts1 - ts2) < 1:
+                    add_on = False
+                    # ts2 add
+            if add_on:
+                its1.append(int(100 * (ts2 - utc_phn1)))
+    elif len(its1) == 0 and len(its2) > 0:
+        for ts2 in utc_its2:
+            its1.append(int(100 * (ts2 - utc_phn1)))
+    if len(itp1) > 0:
+        df.itp[index] = itp1.__str__().replace(',', '')
+    if len(its1) > 0:
+        df.its[index] = its1.__str__().replace(',', '')
+    return pd.DataFrame([df.iloc[index]], columns=df.columns)
+
+
+def csv_delete_overlapline(input_csv, output_csv):
+    df = pd.read_csv(input_csv)
+    df2 = pd.DataFrame()
+    for i in range(len(df)):
+        cut_start1 = int(df['fname'][i].split('_')[1])
+        """
+        consider overlap is 50% and input length is 60 minutes, we remove the repeated 
+        results with parameters about 3600 and 15
+        """
+        if 0.01 * cut_start1 < 3600:
+            df2 = df2.append(df.iloc[i])
+    df2.to_csv(output_csv, index=False)
+
+
+def phasenet_stafilter_fnamecsv(csv_dir):
+    time_range = ['20210524', '20210530']
+    t_start = UTCDateTime(time_range[0])
+    t_end = UTCDateTime(t_start) + 3600 * 24
+    df_name = pd.read_csv(os.path.join(csv_dir, 'fname.csv'))
+    df_sta = pd.read_csv(os.path.join(csv_dir, 'sta_filter_list.csv'), header=None)
+    while t_end <= UTCDateTime(time_range[1]):
+        print(t_end)
+        df_new = pd.DataFrame([], columns=df_name.columns)
+        for i in range(df_name.shape[0]):
+            net = df_name.iloc[i].fname.split('.')[1]
+            sta = df_name.iloc[i].fname.split('.')[2]
+            if net in df_sta[0].values and sta in df_sta[df_sta[0] == net].values \
+                    and t_start <= UTCDateTime(df_name.iloc[i].fname.split('.')[0]) < t_end:
+                df_new = df_new.append(df_name.iloc[i])
+        t_name = t_start.strftime('%Y%m%d')
+        df_new.to_csv(os.path.join(csv_dir, 'fnames_2429', f'fname.{t_name}.csv'), index=False)
+        t_start = t_end
+        t_end += 3600 * 24
+
+
+def phn_separate_combine(dir):
+    subdirs = glob.glob("%s/20*" % dir)
+    df = pd.DataFrame(columns=['fname', 'itp', 'tp_prob', 'its', 'ts_prob'])
+    for d in subdirs:
+        df_picks = pd.read_csv(os.path.join(d, 'picks.csv'))
+        df = df.append(df_picks)
+    df.to_csv(os.path.join(dir, 'picks_all.csv'), index=None)
+
+def mag_cmp():
+    catalog_file='/home/jc/work/data/Yangbi/Yangbi_result/man_catalog.npy'
+    catalog = np.load(catalog_file, allow_pickle=True).item()
+    mag=[]
+    for evn in catalog['mag'].keys():
+        if UTCDateTime(evn.split('.')[0])< UTCDateTime('20210524'):
+            continue
+        mag.append(catalog['mag'][evn])
+    mag=np.array(mag)
+    breakpoint()
 
 
 if __name__ == '__main__':
+    # mag_cmp()
+    # phasenet_stafilter_fnamecsv(csv_dir='/home/fanggrp/data/jc_private/Yangbi.phasenet_input/')
+    # phn_separate_combine(dir="/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output_24290.3")
+    # rm_phasenet_overlap(input_csv='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output_24290.3/picks_all.csv',
+    #                     output_csv='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output_24290.3/'
+    #                                'picks_rm_overlap.csv')
+    # mseed_phnerr(input_file='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output_24290.3/picks_rm_overlap.csv',
+    #              output_dir='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output_24290.3',
+    #              catalog_file='/home/jc/work/data/Yangbi/Yangbi_result/man_catalog.npy')
+    # mseed_eqterr(input_dir='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.eqt_output0.1',
+    #              output_dir='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.eqt_output0.1',
+    #              catalog_file='/home/jc/work/data/Yangbi/Yangbi_result/man_catalog.npy')
     # gmt_sta_location(sac_dir='/media/jiangce/Elements SE/Yangbi_sac/2021050100.YN.SAC',
     #                  stfile='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/gmt/st_yangbi.dat',
     #                  station_filter_file='/media/jiangce/Elements SE/Yangbi.phasenet_input/sta_filter_list.csv')
@@ -639,21 +838,21 @@ if __name__ == '__main__':
     #                 eqfile='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/gmt/eq_yangbi.dat')
     # phn_continue_sac2mseed(input_dir='/media/jiangce/Elements SE/Yangbi/Yangbi_sac',
     #                        output_dir='/media/jiangce/work_disk/project/SeismicData/Yangbi/XG.XBT_PhaseNet/XG.XBT_PhaseNet_input')
-    # mseed_phasenet_MT(input_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/'
-    #                              'XG.XBT_PhaseNet/XG.XBT_PhaseNet_output/picks.csv',
-    #                   output_image='/media/jiangce/work_disk/project/SeismicData/Yangbi/XG.XBT_PhaseNet/mt_xbt.png')
-    mseed_phnerr(input_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/Yangbi.phasenet_output_all/picks.csv',
-                 output_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/phnerr.npy',
-                 catalog_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/man_catalog.npy')
-    # mseed_eqterr(input_dir='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/Yangbi.eqt_output',
-    #              output_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/eqterr.npy',
-    #              catalog_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/man_catalog.npy')
-    # err_hist(eqt_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/eqterr.npy',
-    #          phn_file='/media/jiangce/work_disk/project/SeismicData/Yangbi/Yangbi_result/phnerr.npy',
-    #          output_dir='/media/jiangce/work_disk/project/EqtAndPhaseNet/results_analysis/p2_pick_error')
+    mseed_phasenet_MT(input_file='/home/jc/work/data/Yangbi/XG.CHT_PhaseNet/XG.CHT_PhaseNet_output_prob0.7/picks.csv',
+                      output_image='/home/jc/work/data/Yangbi/XG.CHT_PhaseNet/mt_cht_test.pdf')
+    # err_hist(eqt_file='/home/jc/work/data/Yangbi/Yangbi_result/eqterr.npy',
+    #          phn_file='/home/jc/work/data/Yangbi/Yangbi_result/phnerr.npy',
+    #          output_dir='/home/jc/work/EqtAndPhaseNet/results_analysis/p2')
     # find_cases_mseed_output(eqt_output='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.eqt_output',
     #                         phn_picks='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.phasenet_output_all/'
     #                                   'picks.csv',
     #                         catalog_file='/home/jiangce/work/SeismicData/Yangbi_result/man_catalog.npy')
+    # find_cases_mseed_output(eqt_output='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.eqt_output',
+    #                         phn_picks='/home/jiangce/work/SeismicData/Yangbi_result/Yangbi.phasenet_output_all/'
+    #                                   'picks.csv',
+    #                         catalog_file='/media/jiangce/work_disk/project/SeismicData/Maduo/man_catalog.npy')
     # man2catalog_npy(input_file='/media/jiangce/work_disk/project/SeismicData/Maduo/QH_phase_2021-2021.txt',
     #                 output_file='/media/jiangce/work_disk/project/SeismicData/Maduo/man_catalog.npy')
+    # csv_delete_overlapline(input_csv='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output_all/picks.csv',
+    #                        output_csv='/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.phasenet_output_all/'
+    #                                   'picks_rm_overlap_line.csv')

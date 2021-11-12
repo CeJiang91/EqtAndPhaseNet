@@ -60,9 +60,9 @@ def run_predictor():
 # XFJ.GD_201101012348.0001_EV(no result) XFJ.GD_201112231459.0002_EV(good example)
 def model_exhibit(event_id,
                   out_image_dir='./eqt_layer_image',
-                  input_dir='/media/jiangce/work_disk/project/SeismicData/XFJ1121/eqtinputv2/tenyears_set',
-                  input_model='../../EQTransformer/data/EqT_model.h5',
-                  output_dir='/media/jiangce/work_disk/project/SeismicData/XFJ1121/thiscanbedelete/',
+                  input_dir='/home/jc/work/data/XFJ1121/eqtinput/tenyears_set',
+                  input_model='../../EQTransformer/ModelsAndSampleData/EqT_model2.h5',
+                  output_dir='./eqt_layer_image/result',
                   output_probabilities=False,
                   detection_threshold=0.1,
                   P_threshold=0.1,
@@ -225,18 +225,20 @@ def model_exhibit(event_id,
     width = 8
     high = 5
     plt.figure(figsize=(width,high),dpi=100)
+    plt.rc('font', family='Nimbus Roman')
     for i in range(sa.shape[-1]):
         temp = (sa[0,:,i]-min(sa[0,:,i]))/(max(sa[0,:,i])-min(sa[0,:,i]))
         plt.plot(temp+i, 'k')
     plt.yticks([])
-    plt.savefig('input.png')
+    plt.savefig('input.pdf')
     plt.close()
     yy = model(sa)
     plt.figure(figsize=(width, high), dpi=100)
+    plt.rc('font', family='Nimbus Roman')
     for i in range(len(yy)):
         plt.plot(yy[i][0,:,0]+i,'k')
         plt.yticks([])
-    plt.savefig(os.path.join('./eqt_layer_image', 'final_prob.png'))
+    plt.savefig(os.path.join('./eqt_layer_image', 'final_prob.pdf'))
     plt.close()
     #--------------
     for depth in depth_keys:
@@ -291,13 +293,14 @@ def model_exhibit(event_id,
                     x_id = str(id(x))
                     tensor_dict[x_id] = [y] * model._tensor_usage_count[x_id]
                     plt.figure(figsize=(width, high), dpi=100)
+                    plt.rc('font', family='Nimbus Roman')
                     for kk in range(0, y[0].shape[1]):
                         normal_y = (y[0][:, kk] - min(y[0][:, kk])) / (max(y[0][:, kk]) - min(y[0][:, kk]))
                         # plt.plot(y[0][:, kk] + kk)
                         plt.plot(normal_y + kk,'k')
                     plt.yticks([])
                     plt.savefig(os.path.join('./eqt_layer_image', '%003d_' % depth +
-                                             x.name.split(':')[0].replace('/','.')+'.png'))
+                                             x.name.split(':')[0].replace('/','.')+'.pdf'))
                     plt.close()
         # -----------
         # # print('%3d' % len(nodes))
@@ -326,13 +329,14 @@ def model_exhibit(event_id,
     # ---------------------------------------------
     depth_layers_file.close()
     plt.figure(figsize=(width, high), dpi=100)
+    plt.rc('font', family='Nimbus Roman')
     plt.plot(sa[0, :, 0])
     plt.plot(sa[0, :, 1] + 2)
     plt.plot(sa[0, :, 2] + 4)
     plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[0].output_tensors))][0][0][200:-200])+200, ls='--', c='b')
     plt.axvline(x=np.argmax(tensor_dict[str(id(nodes[1].output_tensors))][0][0][200:-200])+200, ls='--', c='red')
     plt.yticks([])
-    plt.savefig('./eqt_layer_image/input.png')
+    plt.savefig('./eqt_layer_image/input.pdf')
     plt.close()
 
 
@@ -405,7 +409,7 @@ def prob_plot(prob_file, trace_file):
                 'size': 12,
                 }
         fig.tight_layout()
-        fig.savefig(ev + '.png', dpi=600)
+        fig.savefig(ev + '.pdf', dpi=600)
         plt.close(fig)
         plt.clf()
     # breakpoint()

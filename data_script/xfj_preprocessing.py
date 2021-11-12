@@ -13,12 +13,13 @@ import pandas as pd
 
 
 def run_xfj_catalog():
-    fullcatalog_reader(input_file=r'../../XFJ1121/台网完全目录交换格式1121.txt'
-                       , output_dir=r'../../XFJ1121/__xfjcache__')
-    phases2npy(input_dir=r'../../XFJ1121/xfj.phase',
-               output_dir=r'../../XFJ1121/__xfjcache__')
-    catalog_head = np.load('../../XFJ1121/__xfjcache__/catalog_head.npy', allow_pickle=True).item()
-    catalog_ph_dist = np.load('../../XFJ1121/__xfjcache__/catalog_ph_dist.npy', allow_pickle=True).item()
+    xfj_dir='/home/jc/work/data/XFJ1121'
+    fullcatalog_reader(input_file=f'{xfj_dir}/台网完全目录交换格式1121.txt'
+                       , output_dir=f'{xfj_dir}/__xfjcache__')
+    phases2npy(input_dir=f'{xfj_dir}/xfj.phase',
+               output_dir=f'{xfj_dir}/__xfjcache__')
+    catalog_head = np.load(f'{xfj_dir}/__xfjcache__/catalog_head.npy', allow_pickle=True).item()
+    catalog_ph_dist = np.load(f'{xfj_dir}/__xfjcache__/catalog_ph_dist.npy', allow_pickle=True).item()
     catalog = {'head': {}, 'phase': {}, 'dist': {}}
     for ev in catalog_ph_dist['phase']:
         if ev in catalog_head:
@@ -77,8 +78,8 @@ def run_xfj_sac2phasenetdata(input_dir, output_dir, catalogfile):
         dirs.sort()
         dic = {'data': {}, 'cn': {}}
         for f in sorted(files):
-            if trn > 50:
-                break
+            # if trn > 50:
+            #     break
             tr = read(os.path.join(root, f))[0]
             if tr.stats.npts < 6000:
                 continue
@@ -249,7 +250,7 @@ def phn_mseed_pick(input_dir, output_dir, station_file):
 
 if __name__ == '__main__':
     start = time.process_time()
-    # run_xfj_catalog()
+    run_xfj_catalog()
     # run_xfj_eqtdata(seed_dir='/home/jc/disk1/Yangbi',
     #                 output_dir='/home/jc/disk1/Yangbi.eqt_input')
     # run_xfj_seed2sac(input_dir='../raw_data/XFJ/xfjml0_seed', output_dir='../raw_data/XFJ/xfjml0_sac')

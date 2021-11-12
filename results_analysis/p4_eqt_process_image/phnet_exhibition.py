@@ -1,14 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.path.append('../../data_script')
 from matplotlib.lines import Line2D
-
+from data_script.xfj_preprocessing import run_xfj_sac2phasenetdata
+import os
 
 '''
     Before running this script, you should cancel the comment in line 533 of run.py
 '''
 
 
-def trace_example(file):
+def trace_example():
+    file = '../../../work/SeismicData/XFJ1121/1daytest/1day.phnetinput/waveform1_xfj/XFJ_GD.201112231459.0002.npz'
     tr = np.load(file)['data']
     pred_prob = np.load('trace_prob.npy', allow_pickle=True)
     ########################################## ploting only in time domain
@@ -21,7 +25,7 @@ def trace_example(file):
     ax = fig.add_subplot(spec5[0, 0])
     ymin, ymax = ax.get_ylim()
     a = pred_prob[0, :, 0, 1]
-    pt=np.argmax(a)
+    pt = np.argmax(a)
     b = pred_prob[0, :, 0, 2]
     st = np.argmax(b)
     plt.plot(tr[:, 0], 'k')
@@ -77,6 +81,18 @@ def trace_example(file):
     plt.clf()
 
 
+def data_prepare():
+
+    run_xfj_sac2phasenetdata(input_dir='example/sac/GD.201112231459.0002.SAC', output_dir='example/npz',
+                             catalogfile='example/catalog.npy')
+
+
+def phn_exhibition():
+    os.chdir('../../PhaseNet')
+    script = 'step_exhibition.py'
+    # os.system('pwd')
+    os.system(f"python {script}")
+
+
 if __name__ == '__main__':
-    trace_example(file='../../../work/SeismicData/XFJ1121/1daytest'
-                       '/1day.phnetinput/waveform1_xfj/XFJ_GD.201112231459.0002.npz')
+    phn_exhibition()

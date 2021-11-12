@@ -442,7 +442,8 @@ def pred_fn(args, data_reader, figure_dir=None, result_dir=None, log_dir=None):
 
   model = Model(config, batch, "pred")
   sess_config = tf.compat.v1.ConfigProto()
-  sess_config.gpu_options.allow_growth = True
+  # sess_config.gpu_options.allow_growth = True
+  sess_config.gpu_options.per_process_gpu_memory_fraction = 0.7
   sess_config.log_device_placement = False
 
   with tf.compat.v1.Session(config=sess_config) as sess:
@@ -462,7 +463,7 @@ def pred_fn(args, data_reader, figure_dir=None, result_dir=None, log_dir=None):
     elif args.save_result:
       num_pool = multiprocessing.cpu_count()
     else:
-      num_pool = 2
+      num_pool = 8
     pool = multiprocessing.Pool(num_pool)
     fclog = open(os.path.join(log_dir, args.fpred+'.csv'), 'w')
     fclog.write("fname,itp,tp_prob,its,ts_prob\n") 

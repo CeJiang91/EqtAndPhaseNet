@@ -260,6 +260,7 @@ class Model:
      
     with tf.compat.v1.variable_scope("representation"):
       self.representation = convs[-1]
+      self.convs=convs
 
     with tf.compat.v1.variable_scope("logits"):
       self.logits = output

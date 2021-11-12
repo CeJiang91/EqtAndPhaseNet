@@ -42,28 +42,14 @@ def run_mseed_predictor():
     #                 plot_mode='time_frequency',
     #                 batch_size=500,
     #                 overlap=0.3)
-    mseed_predictor(input_dir='/media/jiangce/Elements SE/Yangbi.eqt_input/unfinished',
-                    input_model='data/EqT_model.h5',
-                    stations_json='/media/jiangce/Elements SE/Yangbi.eqt_input//station_list.json',
-                    output_dir='/home/jiangce/work/SeismicData/this_can_be_delete',
-                    detection_threshold=0.2,
-                    P_threshold=0.1,
-                    S_threshold=0.1,
+    mseed_predictor(input_dir='/home/fanggrp/data/jc_private/Yangbi.eqt_input/mseeds',
+                    input_model='./ModelsAndSampleData/EqT_model.h5',
+                    stations_json='/home/fanggrp/data/jc_private/Yangbi.eqt_input/station_list.json',
+                    output_dir=f"/home/jc/work/data/Yangbi/Yangbi_result/Yangbi.eqt_output0.9",
+                    detection_threshold=0.9,
+                    P_threshold=0.9,
+                    S_threshold=0.9,
                     number_of_plots=0,
-                    plot_mode='time_frequency',
-                    batch_size=500,
-                    overlap=0.3)
-
-
-def run_mseed_predictor():
-    mseed_predictor(input_dir='downloads_mseeds',
-                    input_model='ModelsAndSampleData/EqT_model.h5',
-                    stations_json='station_list.json',
-                    output_dir='detection_results',
-                    detection_threshold=0.2,
-                    P_threshold=0.1,
-                    S_threshold=0.1,
-                    number_of_plots=10,
                     plot_mode='time_frequency',
                     batch_size=500,
                     overlap=0.3)
